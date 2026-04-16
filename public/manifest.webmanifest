@@ -1,0 +1,26 @@
+{
+  "name": "Painel de Clubes - CETEC",
+  "short_name": "Painel CETEC",
+  "description": "Painel operacional dos clubes CETEC com visão de dashboard e gestão de clubes.",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#F3F6F9",
+  "theme_color": "#011E62",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
