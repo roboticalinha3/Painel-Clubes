@@ -74,38 +74,11 @@ export async function logoutSession(): Promise<void> {
 }
 
 export async function apiGet<TResponse = unknown>(params: ApiRequestPayload): Promise<TResponse> {
-  if (IS_LOCALHOST) {
-    return jsonpRequest(params) as Promise<TResponse>;
-  }
-
-  const action = String(params?.acao || '').toLowerCase();
-  const requestParams = transformSheetRequest(appendAuthToken(params, action)) as RecordValue;
-  const url = `${API_URL}?${new URLSearchParams(requestParams as Record<string, string>).toString()}`;
-  const response = await fetch(url);
-  const result = transformSheetResponse(await response.json(), String(requestParams?.acao || ''));
-  assertAuthorized(result, String((requestParams as RecordValue)?.token || ''));
-  return result as TResponse;
+  return jsonpRequest(params) as Promise<TResponse>;
 }
 
 export async function apiPost<TResponse = ApiBaseResponse>(payload: ApiRequestPayload): Promise<TResponse> {
-  if (IS_LOCALHOST) {
-    return jsonpRequest(payload) as Promise<TResponse>;
-  }
-
-  const action = String(payload?.acao || '').toLowerCase();
-  const requestPayload = action === 'login'
-    ? payload
-    : transformSheetRequest(appendAuthToken(payload, action));
-
-  const response = await fetch(API_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-    body: JSON.stringify(requestPayload),
-  });
-
-  const result = transformApiResponse(await response.json(), action) as RecordValue;
-  assertAuthorized(result, String((requestPayload as RecordValue)?.token || ''));
-  return result as TResponse;
+  return jsonpRequest(payload) as Promise<TResponse>;
 }
 
 function jsonpRequest(params: RecordValue): Promise<unknown> {
