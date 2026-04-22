@@ -44,7 +44,7 @@ function App() {
 
 function AppRoutes() {
   const [userName, setUserName] = useState(localStorage.getItem('usuarioLogado') || '');
-  const [userRole, setUserRole] = useState(() => normalizeAccessLevel(localStorage.getItem(USER_ROLE_STORAGE_KEY) || 'usuario'));
+  const [userRole, setUserRole] = useState(() => normalizeAccessLevel(localStorage.getItem(USER_ROLE_STORAGE_KEY) || 'editor'));
   const [sessionChecked, setSessionChecked] = useState(false);
   const [newClubModalOpen, setNewClubModalOpen] = useState(false);
   const [newClubSaving, setNewClubSaving] = useState(false);
@@ -85,7 +85,7 @@ function AppRoutes() {
         localStorage.removeItem('usuarioLogado');
         localStorage.removeItem(USER_ROLE_STORAGE_KEY);
         setUserName('');
-        setUserRole('usuario');
+        setUserRole('editor');
         navigate('/login', { replace: true });
         setSessionChecked(true);
         return;
@@ -112,7 +112,7 @@ function AppRoutes() {
       localStorage.removeItem('usuarioLogado');
       localStorage.removeItem(USER_ROLE_STORAGE_KEY);
       setUserName('');
-      setUserRole('usuario');
+      setUserRole('editor');
       navigate('/login', { replace: true });
     }
 
@@ -143,7 +143,7 @@ function AppRoutes() {
       localStorage.removeItem('usuarioLogado');
       localStorage.removeItem(USER_ROLE_STORAGE_KEY);
       setUserName('');
-      setUserRole('usuario');
+      setUserRole('editor');
       setSessionChecked(true);
       navigate('/login', { replace: true });
     },

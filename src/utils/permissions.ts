@@ -1,6 +1,6 @@
 export const ACCESS_LEVELS = {
   ADMIN: 'administrador',
-  USER: 'usuario',
+  EDITOR: 'editor',
   VIEWER: 'leitor',
 } as const;
 
@@ -17,8 +17,10 @@ export function normalizeAccessLevel(value: unknown): KnownAccessLevel | string 
 
   if (normalized.includes('admin')) return ACCESS_LEVELS.ADMIN;
   if (normalized.includes('leit') || normalized.includes('view') || normalized.includes('read')) return ACCESS_LEVELS.VIEWER;
-  if (normalized.includes('usu') || normalized.includes('user')) return ACCESS_LEVELS.USER;
-  if (!normalized) return ACCESS_LEVELS.USER;
+  if (normalized.includes('edit') || normalized.includes('editor')) return ACCESS_LEVELS.EDITOR;
+  // Compatibilidade com registros legados.
+  if (normalized.includes('usu') || normalized.includes('user')) return ACCESS_LEVELS.EDITOR;
+  if (!normalized) return ACCESS_LEVELS.EDITOR;
   return normalized;
 }
 
@@ -26,12 +28,12 @@ export function accessLabel(value: unknown): string {
   const level = normalizeAccessLevel(value);
   if (level === ACCESS_LEVELS.ADMIN) return 'Administrador';
   if (level === ACCESS_LEVELS.VIEWER) return 'Leitor';
-  return 'Usuário';
+  return 'Editor';
 }
 
 export function canCreateClub(value: unknown): boolean {
   const level = normalizeAccessLevel(value);
-  return level === ACCESS_LEVELS.ADMIN || level === ACCESS_LEVELS.USER;
+  return level === ACCESS_LEVELS.ADMIN || level === ACCESS_LEVELS.EDITOR;
 }
 
 export function canEditClub(value: unknown): boolean {
@@ -40,12 +42,12 @@ export function canEditClub(value: unknown): boolean {
 
 export function canCreateAluno(value: unknown): boolean {
   const level = normalizeAccessLevel(value);
-  return level === ACCESS_LEVELS.ADMIN || level === ACCESS_LEVELS.USER;
+  return level === ACCESS_LEVELS.ADMIN || level === ACCESS_LEVELS.EDITOR;
 }
 
 export function canCreateEncontro(value: unknown): boolean {
   const level = normalizeAccessLevel(value);
-  return level === ACCESS_LEVELS.ADMIN || level === ACCESS_LEVELS.USER;
+  return level === ACCESS_LEVELS.ADMIN || level === ACCESS_LEVELS.EDITOR;
 }
 
 export function canUpdateStatus(value: unknown): boolean {
