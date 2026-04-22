@@ -54,8 +54,8 @@ console.log('VALIDACAO OK.');
 
 function getField(row, field) {
   const aliases = {
-    prof: ['prof', 'professor', 'professores', 'Prof', 'Professor', 'Professores', 'Professores(as)', 'Professor(es)'],
-    estag: ['estag', 'estagiario', 'estagiário', 'estagiarios', 'estagiários', 'Estag', 'Estagiario', 'Estagiário', 'Estagiarios', 'Estagiários', 'Estagiários(as)'],
+    prof: ['prof', 'professor(a)', 'professores', 'Prof', 'Professor', 'Professores', 'Professores(as)', 'Professor(es)'],
+    estag: ['estag', 'estagiario(a)', 'estagiário', 'estagiarios', 'estagiários', 'Estag', 'Estagiario', 'Estagiário', 'Estagiarios', 'Estagiários', 'Estagiários(as)'],
   };
 
   const keys = aliases[field] || [field];
