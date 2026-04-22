@@ -28,8 +28,8 @@ for (const [index, club] of clubs.entries()) {
     nome: upper(club.nome),
     escola: upper(club.escola),
     utec: upper(club.utec),
-    prof: upper(club.prof),
-    estag: upper(club.estag),
+    prof: upper(firstDefined(club, ['prof', 'professor', 'professores', 'Prof', 'Professor', 'Professores', 'Professores(as)', 'Professor(es)'])),
+    estag: upper(firstDefined(club, ['estag', 'estagiario', 'estagiário', 'estagiarios', 'estagiários', 'Estag', 'Estagiario', 'Estagiário', 'Estagiarios', 'Estagiários', 'Estagiários(as)'])),
     dias: upper(club.dias),
     horario: upper(club.horario),
     categoria: upper(club.categoria || 'CLUBES INICIAIS'),
@@ -62,4 +62,14 @@ console.log(`\nImportação concluída. Sucesso: ${imported}. Falhas: ${failed}.
 
 function upper(value) {
   return String(value ?? '').trim().toUpperCase();
+}
+
+function firstDefined(record, keys) {
+  for (const key of keys) {
+    const value = record?.[key];
+    if (value !== undefined && value !== null && String(value).trim() !== '') {
+      return value;
+    }
+  }
+  return '';
 }
