@@ -136,9 +136,14 @@ function jsonpRequest(params: RecordValue): Promise<unknown> {
 function transformSheetRequest(value: unknown): unknown {
   return transformDeep(value, (key, currentValue) => {
     if (typeof currentValue !== 'string') return currentValue;
-    if (key === 'acao' || key === 'callback' || key === 'token' || isIdField(key)) return currentValue;
+    if (shouldPreserveRawStringField(key) || isIdField(key)) return currentValue;
     return currentValue.toUpperCase();
   });
+}
+
+function shouldPreserveRawStringField(key: string): boolean {
+  const normalized = String(key || '').toLowerCase();
+  return normalized === 'acao' || normalized === 'callback' || normalized === 'token' || normalized === 'authtoken' || normalized === 'email' || normalized === 'senha';
 }
 
 function transformSheetResponse(value: unknown, action = ''): unknown {
