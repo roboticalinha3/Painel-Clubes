@@ -19,7 +19,7 @@ for (const [index, row] of data.entries()) {
   const line = index + 1;
 
   for (const field of required) {
-    if (!String(row?.[field] ?? '').trim()) {
+    if (!String(getField(row, field) ?? '').trim()) {
       issues.push(`LINHA ${line}: CAMPO VAZIO -> ${field}`);
     }
   }
@@ -51,3 +51,19 @@ if (issues.length) {
 }
 
 console.log('VALIDACAO OK.');
+
+function getField(row, field) {
+  const aliases = {
+    prof: ['prof', 'professor', 'professores', 'Prof', 'Professor', 'Professores', 'Professores(as)', 'Professor(es)'],
+    estag: ['estag', 'estagiario', 'estagiário', 'estagiarios', 'estagiários', 'Estag', 'Estagiario', 'Estagiário', 'Estagiarios', 'Estagiários', 'Estagiários(as)'],
+  };
+
+  const keys = aliases[field] || [field];
+  for (const key of keys) {
+    const value = row?.[key];
+    if (value !== undefined && value !== null && String(value).trim() !== '') {
+      return value;
+    }
+  }
+  return '';
+}
