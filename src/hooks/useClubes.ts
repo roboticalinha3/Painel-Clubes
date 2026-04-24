@@ -175,5 +175,17 @@ function extractRows(payload: unknown): unknown[] {
   if (Array.isArray(data.data)) return data.data;
   if (Array.isArray(data.rows)) return data.rows;
   if (Array.isArray(data.itens)) return data.itens;
+
+  // Fallback tolerante para respostas com chaves em maiusculo/misto (ex.: DADOS, DATA).
+  const knownKeys = new Set(['dados', 'data', 'rows', 'itens', 'items', 'resultado', 'result']);
+  for (const [key, value] of Object.entries(data)) {
+    if (!knownKeys.has(String(key || '').trim().toLowerCase())) continue;
+    if (Array.isArray(value)) return value;
+  }
+
+  // Ultimo fallback: se houver apenas uma propriedade array, usa ela.
+  const firstArray = Object.values(data).find((value) => Array.isArray(value));
+  if (Array.isArray(firstArray)) return firstArray;
+
   return [];
 }
