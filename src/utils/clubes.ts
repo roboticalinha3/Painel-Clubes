@@ -37,12 +37,32 @@ function asRecord(value: unknown): RawRecord {
 
 export function pickField(record: unknown, aliases: string[], fallback: unknown = ''): unknown {
   const safeRecord = asRecord(record);
+
+  // 1) tentativa direta com os aliases informados
   for (const key of aliases) {
     const current = safeRecord[key];
     if (current !== undefined && current !== null && String(current).trim() !== '') {
       return current;
     }
   }
+
+  // 2) fallback tolerante: ignora caixa, espacos, underscore e hifen
+  const normalizedEntries = Object.entries(safeRecord).map(([key, value]) => ({
+    key: normalizeLookupKey(key),
+    value,
+  }));
+
+  for (const alias of aliases) {
+    const normalizedAlias = normalizeLookupKey(alias);
+    const match = normalizedEntries.find((entry) => entry.key === normalizedAlias);
+    if (!match) continue;
+
+    const current = match.value;
+    if (current !== undefined && current !== null && String(current).trim() !== '') {
+      return current;
+    }
+  }
+
   return fallback;
 }
 
@@ -64,7 +84,7 @@ function normalizeId(value: unknown): string {
 
 export function normalizeClube(raw: unknown): Clube {
   return {
-    id: normalizeId(pickField(raw, ['ID', 'id', 'ID_Clube', 'ID Clube'], '')),
+    id: normalizeId(pickField(raw, ['ID', 'id', 'ID_Clube', 'ID Clube', 'ID_CLUBE', 'IDCLUBE', 'id_clube', 'id clube', 'idclube'], '')),
     nome: toUpperText(pickField(raw, ['Nome', 'nome'], '-'), '-'),
     escola: toUpperText(pickField(raw, ['Escola', 'escola'], '-'), '-'),
     utec: toUpperText(pickField(raw, ['UTEC', 'utec'], '-'), '-'),
@@ -80,7 +100,7 @@ export function normalizeClube(raw: unknown): Clube {
 export function normalizeAluno(raw: unknown): Aluno {
   return {
     id: normalizeId(pickField(raw, ['ID_Aluno', 'ID Aluno', 'id', 'ID'], '')),
-    idClube: normalizeId(pickField(raw, ['ID_Clube', 'ID Clube', 'id_clube'], '')),
+    idClube: normalizeId(pickField(raw, ['ID_Clube', 'ID Clube', 'ID_CLUBE', 'IDCLUBE', 'id_clube', 'id clube', 'idclube'], '')),
     matricula: toUpperText(pickField(raw, ['Matricula', 'Matrícula', 'matricula'], ''), ''),
     nome: toUpperText(pickField(raw, ['Nome', 'nome'], '-'), '-'),
     dataRegistro: toUpperText(pickField(raw, ['Data_Registro', 'Data Registro', 'data_registro'], ''), ''),
@@ -90,7 +110,7 @@ export function normalizeAluno(raw: unknown): Aluno {
 export function normalizeEncontro(raw: unknown): Encontro {
   return {
     id: normalizeId(pickField(raw, ['ID_Encontro', 'ID Encontro', 'id', 'ID'], '')),
-    idClube: normalizeId(pickField(raw, ['ID_Clube', 'ID Clube', 'id_clube'], '')),
+    idClube: normalizeId(pickField(raw, ['ID_Clube', 'ID Clube', 'ID_CLUBE', 'IDCLUBE', 'id_clube', 'id clube', 'idclube'], '')),
     modulo: toUpperText(pickField(raw, ['Modulo', 'Módulo', 'modulo', 'Modlulo'], ''), ''),
     assunto: toUpperText(pickField(raw, ['Assunto', 'assunto'], '-'), '-'),
     data: toUpperText(pickField(raw, ['Data', 'data'], ''), ''),
@@ -122,4 +142,11 @@ export function formatDateBR(dateValue: unknown): string {
   const date = new Date(String(dateValue));
   if (Number.isNaN(date.getTime())) return String(dateValue);
   return new Intl.DateTimeFormat('pt-BR').format(date);
+}
+
+function normalizeLookupKey(value: unknown): string {
+  return String(value ?? '')
+    .trim()
+    .toLowerCase()
+    .replace(/[\s_-]+/g, '');
 }
