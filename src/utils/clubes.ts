@@ -84,7 +84,7 @@ export function normalizeClube(raw: unknown): Clube {
 export function normalizeAluno(raw: unknown): Aluno {
   return {
     id: normalizeId(pickField(raw, ['ID_Aluno', 'ID Aluno', 'id', 'ID'], '')),
-    idClube: normalizeId(pickField(raw, ['ID_Clube', 'ID Clube', 'ID_CLUBE', 'IDCLUBE', 'id_clube', 'idclube'], '')),
+    idClube: normalizeId(pickField(raw, ['ID_Clube', 'ID Clube', 'id_clube'], '')),
     matricula: toUpperText(pickField(raw, ['Matricula', 'Matrícula', 'matricula'], ''), ''),
     nome: toUpperText(pickField(raw, ['Nome', 'nome'], '-'), '-'),
     dataRegistro: toUpperText(pickField(raw, ['Data_Registro', 'Data Registro', 'data_registro'], ''), ''),
