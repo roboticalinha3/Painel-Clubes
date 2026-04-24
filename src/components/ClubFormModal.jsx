@@ -16,7 +16,7 @@ const EMPTY_FORM = {
   categoria: 'Clubes Iniciais',
 };
 
-export function ClubFormModal({ open, title, initialValues, onClose, onSubmit, saving, error = '' }) {
+export function ClubFormModal({ open, title, initialValues = {}, onClose, onSubmit, saving, error = '' }) {
   const [form, setForm] = useState(() => ({ ...EMPTY_FORM, ...initialValues }));
 
   if (!open) return null;

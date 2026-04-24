@@ -8,7 +8,7 @@ import { ModalActionRow } from '../components/ui/ModalActionRow';
 import { formatDateBR, statusKey, toUpperText } from '../utils/clubes';
 import { canCreateAluno, canCreateEncontro, canDeleteAluno, canDeleteEncontro, canUpdateStatus } from '../utils/permissions';
 
-export function ClubDetailPage({ userName, userRole, onLogout, onOpenNewClubModal, clubes, details, detailsError, onLoadDetails, onRefresh, onSaveAluno, onDeleteAluno, onSaveEncontro, onDeleteEncontro, onUpdateStatus }) {
+export function ClubDetailPage({ userName, userRole, onLogout, onOpenNewClubModal, clubes, details, detailsLoading = false, detailsError, onLoadDetails, onRefresh, onSaveAluno, onDeleteAluno, onSaveEncontro, onDeleteEncontro, onUpdateStatus }) {
   const { clubId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
@@ -234,6 +234,7 @@ export function ClubDetailPage({ userName, userRole, onLogout, onOpenNewClubModa
       <main className="app-main-pane dashboard-main-modern flex-1 flex flex-col min-h-0 overflow-visible lg:overflow-hidden relative bg-bgDashboard lg:h-screen">
         <div className="px-4 sm:px-6 lg:px-8 py-4 lg:py-6 flex-1 flex flex-col min-h-0 overflow-visible lg:overflow-hidden">
           {(detailsError || actionError) && <div className="ui-state-panel ui-state-panel--empty text-red-500">{detailsError || actionError}</div>}
+          {detailsLoading && <div className="ui-state-panel ui-state-panel--empty">Carregando detalhes do clube...</div>}
 
           <div className="flex flex-col h-full animate-[fadeIn_0.3s_ease-in-out] overflow-visible lg:overflow-hidden">
             <div className="shrink-0 mb-3 flex justify-end items-center">
