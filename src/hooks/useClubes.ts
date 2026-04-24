@@ -55,24 +55,19 @@ export function useClubes(): UseClubesResult {
       const clubesRaw = await apiGet<unknown>({ acao: 'listar_clubes', _t: Date.now() });
       const clubesNorm = Array.isArray(clubesRaw) ? clubesRaw.map(normalizeClube) : [];
 
-      const clubesComAlunos = await Promise.all(
-        clubesNorm.map(async (clube): Promise<ClubeComAlunos> => {
-          if (!clube?.id) return { ...clube, alunos: resolveAlunoCount(clube) };
+      const clubesComAlunos: ClubeComAlunos[] = [];
+      for (const clube of clubesNorm) {
+        if (!clube?.id) {
+          clubesComAlunos.push({ ...clube, alunos: resolveAlunoCount(clube) });
+          continue;
+        }
 
-          try {
-            const alunosRaw = await apiGet<unknown>({ acao: 'listar_alunos', id_clube: clube.id, _t: Date.now() });
-            return {
-              ...clube,
-              alunos: extractRows(alunosRaw).length,
-            };
-          } catch {
-            return {
-              ...clube,
-              alunos: resolveAlunoCount(clube),
-            };
-          }
-        }),
-      );
+        const alunosCount = await fetchAlunoCountByClubId(clube.id);
+        clubesComAlunos.push({
+          ...clube,
+          alunos: alunosCount ?? resolveAlunoCount(clube),
+        });
+      }
 
       setClubes(clubesComAlunos);
     } catch (err) {
@@ -97,8 +92,8 @@ export function useClubes(): UseClubesResult {
       ]);
 
       const nextDetails: ClubDetails = {
-        alunos: Array.isArray(alunosRaw) ? alunosRaw.map(normalizeAluno) : [],
-        encontros: Array.isArray(encontrosRaw) ? encontrosRaw.map(normalizeEncontro) : [],
+        alunos: extractRows(alunosRaw).map(normalizeAluno),
+        encontros: extractRows(encontrosRaw).map(normalizeEncontro),
       };
       setDetails(nextDetails);
       return nextDetails;
@@ -158,4 +153,17 @@ function resolveAlunoCount(clube: ClubeComAlunos, alunosPorClube: Record<string,
 
   const clubId = String(clube.id || '').trim();
   return clubId ? (alunosPorClube[clubId] || 0) : 0;
+}
+
+async function fetchAlunoCountByClubId(clubId: string, maxAttempts = 2): Promise<number | null> {
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    try {
+      const alunosRaw = await apiGet<unknown>({ acao: 'listar_alunos', id_clube: clubId, _t: Date.now() });
+      return extractRows(alunosRaw).length;
+    } catch {
+      if (attempt === maxAttempts) return null;
+    }
+  }
+
+  return null;
 }
