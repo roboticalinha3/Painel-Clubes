@@ -11,6 +11,7 @@ export interface Clube {
   horario: string;
   categoria: string;
   status: string;
+  alunos?: number;
 }
 
 export interface Aluno {
@@ -83,6 +84,10 @@ function normalizeId(value: unknown): string {
 }
 
 export function normalizeClube(raw: unknown): Clube {
+  const alunos = parseOptionalNumber(
+    pickField(raw, ['ALUNOS', 'Alunos', 'alunos', 'QTD_ALUNOS', 'QTD ALUNOS', 'Qtd Alunos', 'TOTAL_ALUNOS', 'Total Alunos'], ''),
+  );
+
   return {
     id: normalizeId(pickField(raw, ['ID', 'id', 'ID_Clube', 'ID Clube', 'ID_CLUBE', 'IDCLUBE', 'id_clube', 'id clube', 'idclube'], '')),
     nome: toUpperText(pickField(raw, ['Nome', 'nome'], '-'), '-'),
@@ -94,6 +99,7 @@ export function normalizeClube(raw: unknown): Clube {
     horario: toUpperText(pickField(raw, ['Horario', 'Horário', 'horario'], '-'), '-'),
     categoria: toUpperText(pickField(raw, ['Categoria', 'categoria'], 'CLUBES INICIAIS'), 'CLUBES INICIAIS'),
     status: toUpperText(pickField(raw, ['Status', 'status'], 'PENDENTE'), 'PENDENTE'),
+    alunos,
   };
 }
 
@@ -149,4 +155,15 @@ function normalizeLookupKey(value: unknown): string {
     .trim()
     .toLowerCase()
     .replace(/[\s_-]+/g, '');
+}
+
+function parseOptionalNumber(value: unknown): number | undefined {
+  if (value === undefined || value === null) return undefined;
+
+  const text = String(value).trim();
+  if (!text) return undefined;
+
+  const normalized = text.replace(/[.\s]/g, '').replace(',', '.');
+  const numberValue = Number(normalized);
+  return Number.isFinite(numberValue) ? numberValue : undefined;
 }

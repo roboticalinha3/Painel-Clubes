@@ -57,18 +57,20 @@ export function useClubes(): UseClubesResult {
 
       const clubesComAlunos = await Promise.all(
         clubesNorm.map(async (clube): Promise<ClubeComAlunos> => {
-          if (!clube?.id) return { ...clube, alunos: 0 };
+          const alunosFallback = typeof clube.alunos === 'number' && Number.isFinite(clube.alunos) ? clube.alunos : 0;
+          if (!clube?.id) return { ...clube, alunos: alunosFallback };
 
           try {
             const alunosRaw = await apiGet<unknown>({ acao: 'listar_alunos', id_clube: clube.id, _t: Date.now() });
+            const alunosCount = extractRows(alunosRaw).length;
             return {
               ...clube,
-              alunos: extractRows(alunosRaw).length,
+              alunos: alunosCount > 0 ? alunosCount : alunosFallback,
             };
           } catch {
             return {
               ...clube,
-              alunos: 0,
+              alunos: alunosFallback,
             };
           }
         }),
@@ -97,8 +99,8 @@ export function useClubes(): UseClubesResult {
       ]);
 
       const nextDetails: ClubDetails = {
-        alunos: Array.isArray(alunosRaw) ? alunosRaw.map(normalizeAluno) : [],
-        encontros: Array.isArray(encontrosRaw) ? encontrosRaw.map(normalizeEncontro) : [],
+        alunos: extractRows(alunosRaw).map(normalizeAluno),
+        encontros: extractRows(encontrosRaw).map(normalizeEncontro),
       };
       setDetails(nextDetails);
       return nextDetails;
