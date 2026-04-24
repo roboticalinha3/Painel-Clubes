@@ -52,8 +52,33 @@ export function useClubes(): UseClubesResult {
     setError('');
 
     try {
-      const clubesRaw = await apiGet<unknown>({ acao: 'listar_clubes', _t: Date.now() });
+      const [clubesRaw, alunosGlobalRaw] = await Promise.all([
+        apiGet<unknown>({ acao: 'listar_clubes', _t: Date.now() }),
+        apiGet<unknown>({ acao: 'listar_alunos', _t: Date.now() }),
+      ]);
       const clubesNorm = Array.isArray(clubesRaw) ? clubesRaw.map(normalizeClube) : [];
+      const alunosGlobal = extractRows(alunosGlobalRaw).map(normalizeAluno);
+
+      if (alunosGlobal.length > 0) {
+        const alunosByClubId = alunosGlobal.reduce<Record<string, number>>((acc, aluno) => {
+          const clubId = String(aluno.idClube || '').trim();
+          if (!clubId) return acc;
+          acc[clubId] = (acc[clubId] || 0) + 1;
+          return acc;
+        }, {});
+
+        const clubesComAlunos = clubesNorm.map((clube): ClubeComAlunos => {
+          const clubId = String(clube.id || '').trim();
+          const alunosFallback = typeof clube.alunos === 'number' && Number.isFinite(clube.alunos) ? clube.alunos : 0;
+          return {
+            ...clube,
+            alunos: clubId ? (alunosByClubId[clubId] || alunosFallback) : alunosFallback,
+          };
+        });
+
+        setClubes(clubesComAlunos);
+        return;
+      }
 
       const clubesComAlunos = await Promise.all(
         clubesNorm.map(async (clube): Promise<ClubeComAlunos> => {
