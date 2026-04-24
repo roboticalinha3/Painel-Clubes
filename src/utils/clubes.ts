@@ -11,7 +11,6 @@ export interface Clube {
   horario: string;
   categoria: string;
   status: string;
-  alunos?: number;
 }
 
 export interface Aluno {
@@ -64,8 +63,6 @@ function normalizeId(value: unknown): string {
 }
 
 export function normalizeClube(raw: unknown): Clube {
-  const alunos = parseOptionalNumber(pickField(raw, ['ALUNOS', 'Alunos', 'alunos', 'Qtd Alunos', 'Qtd_alunos', 'Quantidade de Alunos', 'quantidade_alunos'], ''));
-
   return {
     id: normalizeId(pickField(raw, ['ID', 'id', 'ID_Clube', 'ID Clube'], '')),
     nome: toUpperText(pickField(raw, ['Nome', 'nome'], '-'), '-'),
@@ -77,7 +74,6 @@ export function normalizeClube(raw: unknown): Clube {
     horario: toUpperText(pickField(raw, ['Horario', 'Horário', 'horario'], '-'), '-'),
     categoria: toUpperText(pickField(raw, ['Categoria', 'categoria'], 'CLUBES INICIAIS'), 'CLUBES INICIAIS'),
     status: toUpperText(pickField(raw, ['Status', 'status'], 'PENDENTE'), 'PENDENTE'),
-    alunos,
   };
 }
 
@@ -126,15 +122,4 @@ export function formatDateBR(dateValue: unknown): string {
   const date = new Date(String(dateValue));
   if (Number.isNaN(date.getTime())) return String(dateValue);
   return new Intl.DateTimeFormat('pt-BR').format(date);
-}
-
-function parseOptionalNumber(value: unknown): number | undefined {
-  if (value === undefined || value === null) return undefined;
-
-  const text = String(value).trim();
-  if (!text) return undefined;
-
-  const normalized = text.replace(/[.\s]/g, '').replace(',', '.');
-  const numberValue = Number(normalized);
-  return Number.isFinite(numberValue) ? numberValue : undefined;
 }
