@@ -52,23 +52,42 @@ export function useClubes(): UseClubesResult {
     setError('');
 
     try {
-      const clubesRaw = await apiGet<unknown>({ acao: 'listar_clubes', _t: Date.now() });
+      const [clubesRaw, alunosRaw] = await Promise.all([
+        apiGet<unknown>({ acao: 'listar_clubes', _t: Date.now() }),
+        apiGet<unknown>({ acao: 'listar_alunos', _t: Date.now() }),
+      ]);
       const clubesNorm = Array.isArray(clubesRaw) ? clubesRaw.map(normalizeClube) : [];
+      const alunosRows = extractRows(alunosRaw).map(normalizeAluno);
+
+      if (alunosRows.length > 0) {
+        const alunosPorClube = alunosRows.reduce<Record<string, number>>((acc, aluno) => {
+          const clubId = String(aluno.idClube || '').trim();
+          if (!clubId) return acc;
+          acc[clubId] = (acc[clubId] || 0) + 1;
+          return acc;
+        }, {});
+
+        setClubes(clubesNorm.map((clube) => ({
+          ...clube,
+          alunos: resolveAlunoCount(clube, alunosPorClube),
+        })));
+        return;
+      }
 
       const clubesComAlunos = await Promise.all(
         clubesNorm.map(async (clube): Promise<ClubeComAlunos> => {
-          if (!clube?.id) return { ...clube, alunos: 0 };
+          if (!clube?.id) return { ...clube, alunos: resolveAlunoCount(clube) };
 
           try {
-            const alunosRaw = await apiGet<unknown>({ acao: 'listar_alunos', id_clube: clube.id, _t: Date.now() });
+            const alunosFallbackRaw = await apiGet<unknown>({ acao: 'listar_alunos', id_clube: clube.id, _t: Date.now() });
             return {
               ...clube,
-              alunos: extractRows(alunosRaw).length,
+              alunos: extractRows(alunosFallbackRaw).length,
             };
           } catch {
             return {
               ...clube,
-              alunos: 0,
+              alunos: resolveAlunoCount(clube),
             };
           }
         }),
@@ -149,4 +168,13 @@ function extractRows(payload: unknown): unknown[] {
   if (Array.isArray(data.rows)) return data.rows;
   if (Array.isArray(data.itens)) return data.itens;
   return [];
+}
+
+function resolveAlunoCount(clube: ClubeComAlunos, alunosPorClube: Record<string, number> = {}): number {
+  if (typeof clube.alunos === 'number' && Number.isFinite(clube.alunos)) {
+    return clube.alunos;
+  }
+
+  const clubId = String(clube.id || '').trim();
+  return alunosPorClube[clubId] || 0;
 }
