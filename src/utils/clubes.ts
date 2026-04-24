@@ -38,12 +38,28 @@ function asRecord(value: unknown): RawRecord {
 
 export function pickField(record: unknown, aliases: string[], fallback: unknown = ''): unknown {
   const safeRecord = asRecord(record);
+
+  // Fast path: direct key lookup.
   for (const key of aliases) {
     const current = safeRecord[key];
     if (current !== undefined && current !== null && String(current).trim() !== '') {
       return current;
     }
   }
+
+  // Fallback: tolerant lookup for keys that only differ by case, spaces, hyphens or underscores.
+  const normalizedEntries = new Map<string, unknown>();
+  for (const [recordKey, recordValue] of Object.entries(safeRecord)) {
+    normalizedEntries.set(normalizeLookupKey(recordKey), recordValue);
+  }
+
+  for (const alias of aliases) {
+    const current = normalizedEntries.get(normalizeLookupKey(alias));
+    if (current !== undefined && current !== null && String(current).trim() !== '') {
+      return current;
+    }
+  }
+
   return fallback;
 }
 
@@ -137,4 +153,11 @@ function parseOptionalNumber(value: unknown): number | undefined {
   const normalized = text.replace(/[.\s]/g, '').replace(',', '.');
   const numberValue = Number(normalized);
   return Number.isFinite(numberValue) ? numberValue : undefined;
+}
+
+function normalizeLookupKey(value: string): string {
+  return String(value || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[\s_-]+/g, '');
 }
