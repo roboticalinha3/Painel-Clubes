@@ -39,7 +39,7 @@ export function DashboardView({ clubes }) {
 
   const kpis = {
     totalClubes: clubes.length,
-    totalAlunos: 1876,
+    totalAlunos: clubes.reduce((sum, c) => sum + (c.alunos || 0), 0),
     totalEscolas: analytics.totalEscolas,
     conclusaoMedia: `${analytics.percentualMedioConclusao}%`,
   };
