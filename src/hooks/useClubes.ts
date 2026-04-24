@@ -194,11 +194,14 @@ async function fetchAlunoCountByClubId(clubId: string, maxAttempts = 2): Promise
 }
 
 function isDebugEnabled(): boolean {
+  if (typeof import.meta !== 'undefined' && import.meta.env?.DEV) return true;
   if (typeof window === 'undefined') return false;
 
   try {
     const fromStorage = window.localStorage.getItem('debugPainelClubes') === '1';
-    const fromQuery = window.location.search.includes('debugClubes=1');
+    const fromQuery =
+      window.location.search.includes('debugClubes=1') ||
+      window.location.hash.includes('debugClubes=1');
     return fromStorage || fromQuery;
   } catch {
     return false;
