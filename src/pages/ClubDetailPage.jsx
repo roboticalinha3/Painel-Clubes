@@ -149,13 +149,24 @@ export function ClubDetailPage({ userName, userRole, onLogout, onOpenNewClubModa
   }
 
   async function toggleEncontroStatus(encontro) {
-    if (!encontro?.id) return;
+    if (!encontro?.id) {
+      const msg = 'Este encontro não possui um identificador (id). Sincronize os dados ou contate o suporte.';
+      console.warn('toggleEncontroStatus: encontro sem id', encontro);
+      setActionError(msg);
+      return;
+    }
 
     setEncontroLoadingMap((curr) => ({ ...curr, [encontro.id]: true }));
     const novoStatus = String(encontro.status || '').toUpperCase() === 'FEITO' ? 'A FAZER' : 'FEITO';
     try {
-      const response = await onUpdateStatus({ acao: 'atualizar_status_encontro', id_encontro: encontro.id, status: novoStatus });
+      const payload = { acao: 'atualizar_status_encontro', id_encontro: encontro.id, status: novoStatus };
+      console.log('toggleEncontroStatus -> payload:', payload);
+      const response = await onUpdateStatus(payload);
+      console.log('toggleEncontroStatus <- response:', response);
       if (response?.sucesso) await refreshDetails();
+    } catch (err) {
+      console.error('toggleEncontroStatus error', err);
+      throw err;
     } finally {
       setEncontroLoadingMap((curr) => ({ ...curr, [encontro.id]: false }));
     }
@@ -168,9 +179,20 @@ export function ClubDetailPage({ userName, userRole, onLogout, onOpenNewClubModa
     setEncontroLoadingMap((curr) => ({ ...curr, [encontroKey]: true }));
     try {
       setActionError('');
-      let response = await onDeleteEncontro({ acao: 'remover_encontro', id_encontro: encontro?.id || '' });
+      if (!encontro?.id) {
+        const msg = 'Este encontro não possui um identificador (id). Não é possível remover sem id.';
+        setActionError(msg);
+        console.warn('removeEncontro: encontro sem id', encontro);
+        return;
+      }
+
+      const payloadPrimary = { acao: 'remover_encontro', id_encontro: encontro?.id || '' };
+      console.log('removeEncontro -> trying primary payload:', payloadPrimary);
+      let response = await onDeleteEncontro(payloadPrimary);
       if (!isSuccessResponse(response)) {
-        response = await onDeleteEncontro({ acao: 'excluir_encontro', id_encontro: encontro?.id || '' });
+        const payloadFallback = { acao: 'excluir_encontro', id_encontro: encontro?.id || '' };
+        console.log('removeEncontro -> primary failed, trying fallback payload:', payloadFallback);
+        response = await onDeleteEncontro(payloadFallback);
       }
 
       if (isSuccessResponse(response)) {
