@@ -12,6 +12,7 @@ export function ClubDetailPage({ userName, userRole, onLogout, onOpenNewClubModa
   const { clubId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
+  const routeClubId = decodeURIComponent(String(clubId || '')).trim();
   const [statusValue, setStatusValue] = useState('pendente');
   const [showAlunoModal, setShowAlunoModal] = useState(false);
   const [showEncontroModal, setShowEncontroModal] = useState(false);
@@ -24,7 +25,7 @@ export function ClubDetailPage({ userName, userRole, onLogout, onOpenNewClubModa
   const [novoAluno, setNovoAluno] = useState({ matricula: '', nome: '' });
   const [novoEncontro, setNovoEncontro] = useState({ modulo: 'lista-scratch', assunto: '', data: '' });
 
-  const club = useMemo(() => clubes.find((item) => item.id === clubId) || null, [clubes, clubId]);
+  const club = useMemo(() => clubes.find((item) => isSameClubId(item.id, routeClubId)) || null, [clubes, routeClubId]);
   const allowCreateAluno = canCreateAluno(userRole);
   const allowCreateEncontro = canCreateEncontro(userRole);
   const allowDeleteAluno = canDeleteAluno(userRole);
@@ -51,10 +52,10 @@ export function ClubDetailPage({ userName, userRole, onLogout, onOpenNewClubModa
   }, [encontros]);
 
   useEffect(() => {
-    if (clubId) {
-      onLoadDetails(clubId);
+    if (club?.id) {
+      onLoadDetails(club.id);
     }
-  }, [clubId, onLoadDetails]);
+  }, [club?.id, onLoadDetails]);
 
   useEffect(() => {
     if (club?.status) setStatusValue(statusKey(club.status));
@@ -290,8 +291,8 @@ export function ClubDetailPage({ userName, userRole, onLogout, onOpenNewClubModa
                 <div className="flex-1 overflow-y-auto no-scrollbar pr-1">
                   {alunos.length === 0 && <div className="ui-state-panel ui-state-panel--empty">Nenhum aluno vinculado ainda.</div>}
                   <ul className="space-y-3 font-semibold text-gray-600">
-                    {alunos.map((aluno) => (
-                      <li key={aluno.id || `${aluno.nome}-${aluno.matricula}`} className="ui-card-tile ui-card-tile--row group animate-[fadeIn_0.3s_ease-in-out]">
+                    {alunos.map((aluno, index) => (
+                      <li key={aluno.id || `${aluno.nome}-${aluno.matricula}`.trim() || `aluno-${index}`} className="ui-card-tile ui-card-tile--row group animate-[fadeIn_0.3s_ease-in-out]">
                         <div className="flex items-start sm:items-center w-full gap-2">
                           <div className="w-9 h-9 bg-blue-50 text-cetecBlue rounded-full flex items-center justify-center mr-3 shrink-0">
                             <span className="material-symbols-rounded text-[18px]">person</span>
@@ -430,8 +431,8 @@ function ModuloSection({ title, colorClass, encontros, onToggleStatus, onRemoveE
       </summary>
       <div className="p-3 border-t-0 space-y-3 rounded-b-2xl flex flex-col">
         {encontros.length === 0 && <p className="text-xs font-bold text-gray-400">Nenhum encontro neste módulo.</p>}
-        {encontros.map((enc) => (
-          <div key={enc.id || `${enc.assunto}-${enc.data}`} className="item-encontro ui-card-tile ui-card-tile--row justify-between animate-[fadeIn_0.3s_ease-in-out]">
+        {encontros.map((enc, index) => (
+          <div key={enc.id || `${enc.assunto}-${enc.data}`.trim() || `encontro-${index}`} className="item-encontro ui-card-tile ui-card-tile--row justify-between animate-[fadeIn_0.3s_ease-in-out]">
             <div className="flex-1">
               <p className="font-black text-gray-800 text-sm leading-tight pr-2">{enc.assunto}</p>
               <span className="text-xs text-gray-500 font-bold bg-gray-100 px-2 py-1 rounded-md mt-1.5 inline-flex items-center gap-1">
@@ -522,4 +523,26 @@ function getErrorMessage(response, fallback) {
   }
 
   return response.erro || response.mensagem || response.message || fallback;
+}
+
+function normalizeIdRef(value) {
+  const raw = String(value ?? '').trim();
+  if (!raw) return '';
+
+  const normalized = raw
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '');
+
+  if (!normalized) return '';
+  if (/^\d+$/.test(normalized)) return normalized.replace(/^0+(?=\d)/, '');
+  return normalized;
+}
+
+function isSameClubId(a, b) {
+  const aId = normalizeIdRef(a);
+  const bId = normalizeIdRef(b);
+  if (!aId || !bId) return false;
+  return aId === bId;
 }

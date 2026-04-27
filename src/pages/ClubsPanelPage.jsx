@@ -100,11 +100,15 @@ export function ClubsPanelPage({ userName, userRole, onLogout, onOpenNewClubModa
                 <div className="ui-state-panel ui-state-panel--empty mb-4">Nenhum clube encontrado para os filtros aplicados.</div>
               )}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-5 ui-card-grid ui-card-grid--three" id="grid-clubes-react">
-                {filteredClubes.map((clube) => (
+                {filteredClubes.map((clube, index) => (
                   <button
-                    key={clube.id}
+                    key={clube.id || `clube-${index}`}
                     type="button"
-                    onClick={() => navigate(`/clubes/${clube.id}`, { state: { from: '/clubes' } })}
+                    onClick={() => {
+                      const targetId = resolveClubId(clube, clubes);
+                      if (!targetId) return;
+                      navigate(`/clubes/${encodeURIComponent(targetId)}`, { state: { from: '/clubes' } });
+                    }}
                     data-status={clube.status}
                     className="bg-white rounded-2xl p-6 border-2 border-gray-100 shadow-sm hover:border-cetecGreen cursor-pointer hover:shadow-md transition-all group flex flex-col justify-between gap-4 min-h-[240px] text-left ui-card-tile ui-card-tile--clickable"
                   >
@@ -203,4 +207,12 @@ function statusText(status) {
   if (key === 'concluido') return 'CONCLUÍDO';
   if (key === 'em_andamento') return 'EM ANDAMENTO';
   return 'PENDENTE';
+}
+
+function resolveClubId(clube, clubes) {
+  const currentId = String(clube?.id || '').trim();
+  if (currentId) return currentId;
+
+  const sameNameWithId = clubes.find((item) => item?.nome === clube?.nome && String(item?.id || '').trim());
+  return String(sameNameWithId?.id || '').trim();
 }

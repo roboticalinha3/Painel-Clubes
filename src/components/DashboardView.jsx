@@ -29,7 +29,7 @@ const ENCONTROS_META_PADRAO = 16;
 const STATIC_GENDER_DISTRIBUTION = [52, 48];
 const CHART_ANIMATION = { duration: 850, easing: 'easeOutQuart' };
 
-export function DashboardView({ clubes }) {
+export function DashboardView({ clubes, onSelectClub }) {
   const analytics = buildAnalytics(clubes, clubes);
   const byCategoria = buildCategoria(clubes);
   const byStatus = buildStatusDistribuicao(clubes);
@@ -239,17 +239,25 @@ export function DashboardView({ clubes }) {
           </article>
 
           <article className="bi-card bi-card-lg bi-card-list bi-card-tall">
-            <h4 className="bi-title">Top clubes 3 clubes com mais alunos</h4>
+            <h4 className="bi-title">Top 3 clubes com mais alunos</h4>
             <div className="bi-list bi-list-tall">
-              {topAlunos.items.map((item) => (
-                <div key={item.nome} className="bi-list-row">
+              {topAlunos.items.map((item, index) => (
+                <button
+                  key={item.nome || `top-aluno-${index}`}
+                  type="button"
+                  onClick={() => {
+                    const clube = clubes.find((c) => c.nome === item.nome);
+                    if (clube && onSelectClub) onSelectClub(clube);
+                  }}
+                  className="bi-list-row hover:bg-gray-50 transition-colors cursor-pointer"
+                >
                   <div className="bi-list-avatar">{item.nome.slice(0, 1)}</div>
                   <div className="bi-list-meta">
                     <p className="bi-list-name">{item.nome}</p>
                     <p className="bi-list-sub">{item.escola}</p>
                   </div>
                   <div className="bi-list-value">{item.alunos}</div>
-                </div>
+                </button>
               ))}
             </div>
           </article>

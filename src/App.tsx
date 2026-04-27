@@ -123,10 +123,10 @@ function AppRoutes() {
   const normalizedRole = normalizeAccessLevel(userRole);
 
   useEffect(() => {
-    if (userName && sessionChecked) {
+    if (userName && sessionChecked && clubes.length === 0) {
       loadClubes();
     }
-  }, [userName, sessionChecked, loadClubes]);
+  }, [userName, sessionChecked]);
 
   const auth = useMemo<AuthContextValue>(() => ({
     userName,

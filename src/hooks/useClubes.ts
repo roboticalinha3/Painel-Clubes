@@ -57,22 +57,42 @@ export function useClubes(): UseClubesResult {
         apiGet<unknown>({ acao: 'listar_alunos', _t: Date.now() }),
       ]);
       const clubesNorm = Array.isArray(clubesRaw) ? clubesRaw.map(normalizeClube) : [];
-      const alunosGlobal = extractRows(alunosGlobalRaw).map(normalizeAluno);
+      const alunosRows = extractRows(alunosGlobalRaw);
+      const alunosGlobal = alunosRows.map(normalizeAluno);
 
       if (alunosGlobal.length > 0) {
         const alunosByClubId = alunosGlobal.reduce<Record<string, number>>((acc, aluno) => {
-          const clubId = String(aluno.idClube || '').trim();
+          const clubId = normalizeIdRef(aluno.idClube);
+          if (!clubId) return acc;
+          acc[clubId] = (acc[clubId] || 0) + 1;
+          return acc;
+        }, {});
+
+        const clubeIdByName = clubesNorm.reduce<Record<string, string>>((acc, clube) => {
+          const clubId = String(clube.id || '').trim();
+          const nomeKey = normalizeTextRef(clube.nome);
+          if (!clubId || !nomeKey) return acc;
+          acc[nomeKey] = clubId;
+          return acc;
+        }, {});
+
+        const alunosByClubName = alunosRows.reduce<Record<string, number>>((acc, row) => {
+          const nomeClube = extractAlunoClubName(row);
+          const nomeKey = normalizeTextRef(nomeClube);
+          const clubId = nomeKey ? clubeIdByName[nomeKey] : '';
           if (!clubId) return acc;
           acc[clubId] = (acc[clubId] || 0) + 1;
           return acc;
         }, {});
 
         const clubesComAlunos = clubesNorm.map((clube): ClubeComAlunos => {
-          const clubId = String(clube.id || '').trim();
+          const clubId = normalizeIdRef(clube.id);
           const alunosFallback = typeof clube.alunos === 'number' && Number.isFinite(clube.alunos) ? clube.alunos : 0;
           return {
             ...clube,
-            alunos: clubId ? (alunosByClubId[clubId] || alunosFallback) : alunosFallback,
+            alunos: clubId
+              ? (alunosByClubId[clubId] || alunosByClubName[clubId] || alunosFallback)
+              : alunosFallback,
           };
         });
 
@@ -83,10 +103,11 @@ export function useClubes(): UseClubesResult {
       const clubesComAlunos = await Promise.all(
         clubesNorm.map(async (clube): Promise<ClubeComAlunos> => {
           const alunosFallback = typeof clube.alunos === 'number' && Number.isFinite(clube.alunos) ? clube.alunos : 0;
-          if (!clube?.id) return { ...clube, alunos: alunosFallback };
+          const clubId = String(clube?.id || '').trim();
+          if (!clubId) return { ...clube, alunos: alunosFallback };
 
           try {
-            const alunosRaw = await apiGet<unknown>({ acao: 'listar_alunos', id_clube: clube.id, _t: Date.now() });
+            const alunosRaw = await apiGet<unknown>({ acao: 'listar_alunos', id_clube: clubId, _t: Date.now() });
             const alunosCount = extractRows(alunosRaw).length;
             return {
               ...clube,
@@ -188,4 +209,68 @@ function extractRows(payload: unknown): unknown[] {
   if (Array.isArray(firstArray)) return firstArray;
 
   return [];
+}
+
+function normalizeIdRef(value: unknown): string {
+  const raw = String(value ?? '').trim();
+  if (!raw) return '';
+
+  const normalized = raw
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '');
+
+  if (!normalized) return '';
+  if (/^\d+$/.test(normalized)) return normalized.replace(/^0+(?=\d)/, '');
+  return normalized;
+}
+
+function normalizeTextRef(value: unknown): string {
+  return String(value ?? '')
+    .trim()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '');
+}
+
+function extractAlunoClubName(row: unknown): string {
+  if (!row || typeof row !== 'object') return '';
+  const data = row as Record<string, unknown>;
+
+  const aliases = [
+    'CLUBE',
+    'clube',
+    'NOME_CLUBE',
+    'nome_clube',
+    'Nome Clube',
+    'NOME DO CLUBE',
+    'nome do clube',
+    'CLUBE_NOME',
+    'clube_nome',
+  ];
+
+  for (const key of aliases) {
+    const current = data[key];
+    if (current !== undefined && current !== null && String(current).trim() !== '') {
+      return String(current);
+    }
+  }
+
+  const normalizedEntries = Object.entries(data).map(([key, value]) => ({
+    key: normalizeTextRef(key),
+    value,
+  }));
+  const normalizedAliases = aliases.map((item) => normalizeTextRef(item));
+
+  for (const alias of normalizedAliases) {
+    const match = normalizedEntries.find((entry) => entry.key === alias);
+    if (!match) continue;
+    if (match.value !== undefined && match.value !== null && String(match.value).trim() !== '') {
+      return String(match.value);
+    }
+  }
+
+  return '';
 }

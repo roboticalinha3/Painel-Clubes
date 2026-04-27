@@ -80,16 +80,20 @@ export function statusKey(status: unknown): 'em_andamento' | 'concluido' | 'pend
 }
 
 function normalizeId(value: unknown): string {
-  return String(value ?? '').trim();
+  const text = String(value ?? '').trim();
+  if (!text) return '';
+  if (text === '-' || text === '--') return '';
+  if (/^n\/?a$/i.test(text)) return '';
+  return text;
 }
 
 export function normalizeClube(raw: unknown): Clube {
   const alunos = parseOptionalNumber(
     pickField(raw, ['ALUNOS', 'Alunos', 'alunos', 'QTD_ALUNOS', 'QTD ALUNOS', 'Qtd Alunos', 'TOTAL_ALUNOS', 'Total Alunos'], ''),
-  );
+  ) ?? 0;
 
   return {
-    id: normalizeId(pickField(raw, ['ID', 'id', 'ID_Clube', 'ID Clube', 'ID_CLUBE', 'IDCLUBE', 'id_clube', 'id clube', 'idclube'], '')),
+    id: normalizeId(pickField(raw, ['ID', 'id', 'ID_Clube', 'ID Clube', 'ID_CLUBE', 'IDCLUBE', 'id_clube', 'id clube', 'idclube', 'CODIGO', 'Código', 'COD_CLUBE', 'CODIGO_CLUBE', 'codigo', 'a'], '')),
     nome: toUpperText(pickField(raw, ['Nome', 'nome'], '-'), '-'),
     escola: toUpperText(pickField(raw, ['Escola', 'escola'], '-'), '-'),
     utec: toUpperText(pickField(raw, ['UTEC', 'utec'], '-'), '-'),
@@ -153,8 +157,10 @@ export function formatDateBR(dateValue: unknown): string {
 function normalizeLookupKey(value: unknown): string {
   return String(value ?? '')
     .trim()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase()
-    .replace(/[\s_-]+/g, '');
+    .replace(/[^a-z0-9]+/g, '');
 }
 
 function parseOptionalNumber(value: unknown): number | undefined {
