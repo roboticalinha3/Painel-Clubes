@@ -29,7 +29,7 @@ const ENCONTROS_META_PADRAO = 16;
 const STATIC_GENDER_DISTRIBUTION = [52, 48];
 const CHART_ANIMATION = { duration: 850, easing: 'easeOutQuart' };
 
-export function DashboardView({ clubes, onSelectClub }) {
+export function DashboardView({ clubes, genderStats, onSelectClub }) {
   const analytics = buildAnalytics(clubes, clubes);
   const byCategoria = buildCategoria(clubes);
   const byStatus = buildStatusDistribuicao(clubes);
@@ -54,11 +54,13 @@ export function DashboardView({ clubes, onSelectClub }) {
 
   const genderLabels = ['Meninos', 'Meninas'];
   const genderColors = ['#8B5CF6', '#4ECBD9'];
-  const genderLegend = buildLegendData(genderLabels, analytics.generoData, genderColors);
+  const genderValues = [sanitizeNumber(genderStats?.masculino), sanitizeNumber(genderStats?.feminino)];
+  const genderDataset = genderValues[0] + genderValues[1] > 0 ? genderValues : STATIC_GENDER_DISTRIBUTION;
+  const genderLegend = buildLegendData(genderLabels, genderDataset, genderColors);
   const genderRingData = genderLegend.map((item, index) => ({
     label: item.label,
     value: item.percentual,
-    count: sanitizeNumber(analytics.generoData[index]),
+    count: sanitizeNumber(genderDataset[index]),
     color: genderColors[index],
     rotation: [0, 10][index] ?? -90,
   }));
@@ -471,27 +473,12 @@ function buildAnalytics(clubesFiltrados, todosClubes) {
     ? Math.round(clubesFiltrados.reduce((sum, clube) => sum + computePercentualConclusao(clube), 0) / totalClubesFiltrados)
     : 0;
 
-  const generoAcumulado = clubesFiltrados.reduce(
-    (acc, clube) => {
-      acc.masculino += sanitizeNumber(clube.generoMasculino);
-      acc.feminino += sanitizeNumber(clube.generoFeminino);
-      acc.naoInformado += sanitizeNumber(clube.generoNaoInformado);
-      return acc;
-    },
-    { masculino: 0, feminino: 0, naoInformado: 0 },
-  );
-
-  const possuiGeneroReal = generoAcumulado.masculino + generoAcumulado.feminino + generoAcumulado.naoInformado > 0;
-
   return {
     totalEscolas,
     percentualGlobalExecucao,
     clubesIniciados,
     clubesNaoIniciados,
     percentualMedioConclusao,
-    generoData: possuiGeneroReal
-      ? [generoAcumulado.masculino, generoAcumulado.feminino, generoAcumulado.naoInformado]
-      : STATIC_GENDER_DISTRIBUTION,
   };
 }
 

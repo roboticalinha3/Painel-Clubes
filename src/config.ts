@@ -1,4 +1,4 @@
-const DEFAULT_API_URL = 'https://script.google.com/macros/s/AKfycbw3W32H-3G90jQEvne21SQURKAkEFhY2TZnuiY4Xor7JrG_iGwGatlqc6t1q8vfinH6/exec';
+const DEFAULT_API_URL = 'https://script.google.com/macros/s/AKfycbysMIlnJNgAwtLSnIQ3GaUts8nxFZ5k1ekeaowT9Uc4zbhE5s21ixK5Twvo6KY4712C/exec';
 
 export const API_URL: string = import.meta.env.VITE_API_URL || DEFAULT_API_URL;
 

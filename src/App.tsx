@@ -54,6 +54,7 @@ function AppRoutes() {
     loading,
     error,
     details,
+    genderStats,
     detailsLoading,
     detailsError,
     loadClubes,
@@ -201,6 +202,7 @@ function AppRoutes() {
               onLogout={auth.logout}
               onOpenNewClubModal={openNewClubModal}
               clubes={clubes}
+              genderStats={genderStats}
               loading={loading}
               error={error}
             />

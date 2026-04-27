@@ -9,6 +9,7 @@ export function DashboardPage({
   onLogout,
   onOpenNewClubModal,
   clubes,
+  genderStats,
   loading,
   error,
 }) {
@@ -122,6 +123,7 @@ export function DashboardPage({
           {!loading && !error && (
             <DashboardView
               clubes={clubes}
+              genderStats={genderStats}
               onSelectClub={(clube) => navigate(`/clubes/${clube.id}`, { state: { from: '/dashboard' } })}
             />
           )}

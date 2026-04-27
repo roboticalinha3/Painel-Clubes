@@ -15,6 +15,11 @@ export interface ClubDetails {
   encontros: Encontro[];
 }
 
+export interface GenderStats {
+  masculino: number;
+  feminino: number;
+}
+
 interface RowsPayload extends RawRecord {
   dados?: unknown[];
   data?: unknown[];
@@ -27,6 +32,7 @@ export interface UseClubesResult {
   error: string;
   clubes: ClubeComAlunos[];
   details: ClubDetails;
+  genderStats: GenderStats;
   detailsLoading: boolean;
   detailsError: string;
   loadClubes: () => Promise<void>;
@@ -44,6 +50,7 @@ export function useClubes(): UseClubesResult {
   const [error, setError] = useState('');
   const [clubes, setClubes] = useState<ClubeComAlunos[]>([]);
   const [details, setDetails] = useState<ClubDetails>({ alunos: [], encontros: [] });
+  const [genderStats, setGenderStats] = useState<GenderStats>({ masculino: 0, feminino: 0 });
   const [detailsLoading, setDetailsLoading] = useState(false);
   const [detailsError, setDetailsError] = useState('');
 
@@ -52,13 +59,16 @@ export function useClubes(): UseClubesResult {
     setError('');
 
     try {
-      const [clubesRaw, alunosGlobalRaw] = await Promise.all([
+      const [clubesRaw, alunosGlobalRaw, alunosDetalhesRaw] = await Promise.all([
         apiGet<unknown>({ acao: 'listar_clubes', _t: Date.now() }),
         apiGet<unknown>({ acao: 'listar_alunos', _t: Date.now() }),
+        apiGet<unknown>({ acao: 'listar_alunos_detalhes', _t: Date.now() }),
       ]);
       const clubesNorm = Array.isArray(clubesRaw) ? clubesRaw.map(normalizeClube) : [];
       const alunosRows = extractRows(alunosGlobalRaw);
       const alunosGlobal = alunosRows.map(normalizeAluno);
+      const alunosDetalhesRows = extractRows(alunosDetalhesRaw);
+      setGenderStats(buildGenderStats(alunosDetalhesRows));
 
       if (alunosGlobal.length > 0) {
         const alunosByClubId = alunosGlobal.reduce<Record<string, number>>((acc, aluno) => {
@@ -125,6 +135,7 @@ export function useClubes(): UseClubesResult {
       setClubes(clubesComAlunos);
     } catch (err) {
       console.error(err);
+      setGenderStats({ masculino: 0, feminino: 0 });
       setError('Erro ao carregar os clubes.');
     } finally {
       setLoading(false);
@@ -174,6 +185,7 @@ export function useClubes(): UseClubesResult {
     error,
     clubes,
     details,
+    genderStats,
     detailsLoading,
     detailsError,
     loadClubes,
@@ -209,6 +221,15 @@ function extractRows(payload: unknown): unknown[] {
   if (Array.isArray(firstArray)) return firstArray;
 
   return [];
+}
+
+function buildGenderStats(rows: unknown[]): GenderStats {
+  return rows.reduce<GenderStats>((acc, row) => {
+    const sexo = extractSexo(row);
+    if (sexo === 'M') acc.masculino += 1;
+    if (sexo === 'F') acc.feminino += 1;
+    return acc;
+  }, { masculino: 0, feminino: 0 });
 }
 
 function normalizeIdRef(value: unknown): string {
@@ -272,5 +293,30 @@ function extractAlunoClubName(row: unknown): string {
     }
   }
 
+  return '';
+}
+
+function extractSexo(row: unknown): 'M' | 'F' | '' {
+  if (!row || typeof row !== 'object') return '';
+  const data = row as Record<string, unknown>;
+
+  const direct = data.SEXO ?? data.sexo ?? data.Sexo;
+  if (direct !== undefined && direct !== null) {
+    const value = String(direct).trim().toUpperCase();
+    if (value === 'M' || value === 'MASCULINO') return 'M';
+    if (value === 'F' || value === 'FEMININO') return 'F';
+  }
+
+  const normalizedEntries = Object.entries(data).map(([key, value]) => ({
+    key: normalizeTextRef(key),
+    value,
+  }));
+
+  const match = normalizedEntries.find((entry) => entry.key === 'sexo');
+  if (!match) return '';
+
+  const text = String(match.value ?? '').trim().toUpperCase();
+  if (text === 'M' || text === 'MASCULINO') return 'M';
+  if (text === 'F' || text === 'FEMININO') return 'F';
   return '';
 }
