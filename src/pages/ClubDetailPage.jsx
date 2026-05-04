@@ -22,6 +22,7 @@ export function ClubDetailPage({ userName, userRole, onLogout, onOpenNewClubModa
   const [actionError, setActionError] = useState('');
   const [alunoLoadingMap, setAlunoLoadingMap] = useState({});
   const [encontroLoadingMap, setEncontroLoadingMap] = useState({});
+  const [confirmRemoval, setConfirmRemoval] = useState(null);
   const [novoAluno, setNovoAluno] = useState({ matricula: '', nome: '' });
   const [novoEncontro, setNovoEncontro] = useState({ modulo: 'lista-scratch', assunto: '', data: '' });
 
@@ -242,6 +243,33 @@ export function ClubDetailPage({ userName, userRole, onLogout, onOpenNewClubModa
     }
   }
 
+  function requestRemoveAluno(aluno) {
+    if (!aluno) return;
+    setActionError('');
+    setConfirmRemoval({ type: 'aluno', item: aluno });
+  }
+
+  function requestRemoveEncontro(encontro) {
+    if (!encontro) return;
+    setActionError('');
+    setConfirmRemoval({ type: 'encontro', item: encontro });
+  }
+
+  async function handleConfirmRemoval(event) {
+    event.preventDefault();
+    if (!confirmRemoval) return;
+
+    const { type, item } = confirmRemoval;
+    setConfirmRemoval(null);
+
+    if (type === 'aluno') {
+      await removeAluno(item);
+      return;
+    }
+
+    await removeEncontro(item);
+  }
+
   return (
     <div id="main-app" className="app-shell flex flex-col lg:flex-row min-h-screen w-full overflow-x-hidden lg:overflow-hidden lg:h-screen">
       <AppSidebar
@@ -326,7 +354,7 @@ export function ClubDetailPage({ userName, userRole, onLogout, onOpenNewClubModa
                           {allowDeleteAluno && (
                             <button
                               type="button"
-                              onClick={() => removeAluno(aluno)}
+                              onClick={() => requestRemoveAluno(aluno)}
                               disabled={alunoLoadingMap?.[aluno.id || `${aluno?.matricula || ''}-${aluno?.nome || ''}`]}
                               className={`btn-3d font-black text-[10px] px-2.5 py-1.5 rounded-md border-b-[3px] transition-colors min-w-[74px] shrink-0 mt-0.5 sm:mt-0 ${alunoLoadingMap?.[aluno.id || `${aluno?.matricula || ''}-${aluno?.nome || ''}`] ? 'bg-gray-400 text-white border-gray-600 cursor-wait' : 'bg-gray-700 text-white border-gray-900 hover:bg-gray-800'}`}
                             >
@@ -348,10 +376,10 @@ export function ClubDetailPage({ userName, userRole, onLogout, onOpenNewClubModa
 
                 <div className="flex-1 overflow-y-auto no-scrollbar pr-1 pb-4">
                   <div className="ui-card-grid ui-card-grid--single" style={{ gap: '1.25rem' }}>
-                    <ModuloSection title="1. SCRATCH" colorClass="bg-[#F3A712]" encontros={encontrosPorModulo['lista-scratch']} onToggleStatus={toggleEncontroStatus} onRemoveEncontro={removeEncontro} onCanRemove={allowDeleteEncontro} onCanToggleStatus={allowUpdateStatus} encontroLoadingMap={encontroLoadingMap} />
-                    <ModuloSection title="2. EV3" colorClass="bg-cetecBlue" encontros={encontrosPorModulo['lista-ev3']} onToggleStatus={toggleEncontroStatus} onRemoveEncontro={removeEncontro} onCanRemove={allowDeleteEncontro} onCanToggleStatus={allowUpdateStatus} encontroLoadingMap={encontroLoadingMap} />
-                    <ModuloSection title="3. MAKER / ARDUINO" colorClass="bg-cetecOrange" encontros={encontrosPorModulo['lista-maker']} onToggleStatus={toggleEncontroStatus} onRemoveEncontro={removeEncontro} onCanRemove={allowDeleteEncontro} onCanToggleStatus={allowUpdateStatus} encontroLoadingMap={encontroLoadingMap} />
-                    <ModuloSection title="4. PYTHON" colorClass="bg-cetecGreen" encontros={encontrosPorModulo['lista-python']} onToggleStatus={toggleEncontroStatus} onRemoveEncontro={removeEncontro} onCanRemove={allowDeleteEncontro} onCanToggleStatus={allowUpdateStatus} encontroLoadingMap={encontroLoadingMap} />
+                    <ModuloSection title="1. SCRATCH" colorClass="bg-[#F3A712]" encontros={encontrosPorModulo['lista-scratch']} onToggleStatus={toggleEncontroStatus} onRemoveEncontro={requestRemoveEncontro} onCanRemove={allowDeleteEncontro} onCanToggleStatus={allowUpdateStatus} encontroLoadingMap={encontroLoadingMap} />
+                    <ModuloSection title="2. EV3" colorClass="bg-cetecBlue" encontros={encontrosPorModulo['lista-ev3']} onToggleStatus={toggleEncontroStatus} onRemoveEncontro={requestRemoveEncontro} onCanRemove={allowDeleteEncontro} onCanToggleStatus={allowUpdateStatus} encontroLoadingMap={encontroLoadingMap} />
+                    <ModuloSection title="3. MAKER / ARDUINO" colorClass="bg-cetecOrange" encontros={encontrosPorModulo['lista-maker']} onToggleStatus={toggleEncontroStatus} onRemoveEncontro={requestRemoveEncontro} onCanRemove={allowDeleteEncontro} onCanToggleStatus={allowUpdateStatus} encontroLoadingMap={encontroLoadingMap} />
+                    <ModuloSection title="4. PYTHON" colorClass="bg-cetecGreen" encontros={encontrosPorModulo['lista-python']} onToggleStatus={toggleEncontroStatus} onRemoveEncontro={requestRemoveEncontro} onCanRemove={allowDeleteEncontro} onCanToggleStatus={allowUpdateStatus} encontroLoadingMap={encontroLoadingMap} />
                   </div>
                 </div>
               </div>
@@ -437,6 +465,36 @@ export function ClubDetailPage({ userName, userRole, onLogout, onOpenNewClubModa
             onCancel={() => setShowEncontroModal(false)}
             submitLabel="Salvar Encontro"
             saving={savingEncontro}
+          />
+        </BaseModal>
+      )}
+
+      {confirmRemoval && (
+        <BaseModal
+          open={Boolean(confirmRemoval)}
+          onClose={() => setConfirmRemoval(null)}
+          title="Confirmar remoção"
+          backdropClass="fixed inset-0 bg-cetecBlue/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          sizeClass="ui-modal-card ui-modal-card--sm"
+          contentAs="form"
+          contentProps={{ onSubmit: handleConfirmRemoval }}
+          bodyClass="ui-modal-body space-y-4"
+        >
+          <div className="space-y-2">
+            <p className="text-gray-700 font-bold leading-relaxed">
+              Tem certeza que deseja remover {confirmRemoval.type === 'aluno' ? 'este aluno' : 'este encontro'}?
+            </p>
+            <p className="text-sm text-gray-500 font-semibold leading-relaxed">
+              Essa ação não pode ser desfeita.
+            </p>
+          </div>
+          <ModalActionRow
+            onCancel={() => setConfirmRemoval(null)}
+            cancelLabel="Cancelar"
+            submitLabel="Remover"
+            savingLabel="Removendo..."
+            saving={confirmRemoval.type === 'aluno' ? Boolean(alunoLoadingMap?.[confirmRemoval.item?.id || `${confirmRemoval.item?.matricula || ''}-${confirmRemoval.item?.nome || ''}`]) : Boolean(encontroLoadingMap?.[confirmRemoval.item?.id])}
+            submitClassName="btn-3d bg-red-600 text-white font-black px-5 py-2.5 rounded-xl border-b-[4px] border-red-800 hover:bg-red-500"
           />
         </BaseModal>
       )}
