@@ -156,10 +156,10 @@ function AppRoutes() {
   const allowCreateClub = canCreateClub(normalizedRole);
 
   useEffect(() => {
-    if (userName && sessionChecked && clubes.length === 0) {
+    if (userName && sessionChecked) {
       loadClubes();
     }
-  }, [userName, sessionChecked, clubes.length, loadClubes]);
+  }, [userName, sessionChecked, loadClubes, resolvedUtecScope, userCanSeeAllUtecs]);
 
   const auth = useMemo<AuthContextValue>(() => ({
     userName,
