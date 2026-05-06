@@ -394,7 +394,10 @@ function buildUtec(clubes) {
     if (!key) return acc;
 
     if (!acc[key]) {
-      acc[key] = { label: String(clube.utec || '').trim() || 'Sem UTEC', value: 0 };
+      acc[key] = {
+        label: getUtecLabel(clube),
+        value: 0,
+      };
     }
 
     acc[key].value += 1;
@@ -413,6 +416,16 @@ function buildUtec(clubes) {
     labels: topItems.map((item) => item.label),
     values: topItems.map((item) => item.value),
   };
+}
+
+function getUtecLabel(clube) {
+  const nome = String(clube?.nomeUtec || clube?.nome_utec || '').trim();
+  if (nome) return nome;
+
+  const id = String(clube?.utec || '').trim();
+  if (id) return id;
+
+  return 'Sem UTEC';
 }
 
 function buildProgressoEncontros(clubes) {

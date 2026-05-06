@@ -5,6 +5,7 @@ export interface Clube {
   nome: string;
   escola: string;
   utec: string;
+  nomeUtec?: string;
   prof: string;
   estag: string;
   dias: string;
@@ -97,6 +98,7 @@ export function normalizeClube(raw: unknown): Clube {
     nome: toUpperText(pickField(raw, ['Nome', 'nome'], '-'), '-'),
     escola: toUpperText(pickField(raw, ['Escola', 'escola'], '-'), '-'),
     utec: toUpperText(pickField(raw, ['ID_UTEC', 'id_utec', 'UTEC_ID', 'utec_id', 'UTEC', 'utec'], '-'), '-'),
+    nomeUtec: toUpperText(pickField(raw, ['NOME_UTEC', 'nome_utec', 'NOME UTEC', 'nome utec', 'nomeUtec'], ''), ''),
     prof: toUpperText(pickField(raw, ['Prof', 'Professor', 'Professores', 'Professores(as)', 'Professor(es)', 'prof', 'professor(a)', 'professores(as)'], '-'), '-'),
     estag: toUpperText(pickField(raw, ['Estag', 'Estagiario', 'Estagiário', 'Estagiarios', 'Estagiários', 'Estagiários(as)', 'estag', 'estagiario(a)', 'estagiário', 'estagiarios(as)'], '-'), '-'),
     dias: toUpperText(pickField(raw, ['Dias', 'dias'], '-'), '-'),
