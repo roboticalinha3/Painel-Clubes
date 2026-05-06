@@ -3,6 +3,7 @@ import { apiGet, apiPost } from '../services/api';
 import type { ApiBaseResponse, ApiRequestPayload } from '../services/api';
 import { normalizeAluno, normalizeClube, normalizeEncontro } from '../utils/clubes';
 import type { Aluno, Clube, Encontro } from '../utils/clubes';
+import { normalizeUtecScope } from '../utils/permissions';
 
 type RawRecord = Record<string, unknown>;
 
@@ -45,7 +46,18 @@ export interface UseClubesResult {
   updateStatus: (payload: ApiRequestPayload) => Promise<ApiBaseResponse>;
 }
 
-export function useClubes(): UseClubesResult {
+interface UseClubesOptions {
+  userName?: string;
+  utecScope?: string;
+  canViewAllUtecs?: boolean;
+}
+
+export function useClubes(options: UseClubesOptions = {}): UseClubesResult {
+  const {
+    userName = '',
+    utecScope: explicitScope = '',
+    canViewAllUtecs = false,
+  } = options;
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [clubes, setClubes] = useState<ClubeComAlunos[]>([]);
@@ -53,6 +65,7 @@ export function useClubes(): UseClubesResult {
   const [genderStats, setGenderStats] = useState<GenderStats>({ masculino: 0, feminino: 0 });
   const [detailsLoading, setDetailsLoading] = useState(false);
   const [detailsError, setDetailsError] = useState('');
+  const utecScope = canViewAllUtecs ? '' : normalizeUtecScope(explicitScope || userName);
 
   const loadClubes = useCallback(async () => {
     setLoading(true);
@@ -65,74 +78,26 @@ export function useClubes(): UseClubesResult {
         apiGet<unknown>({ acao: 'listar_alunos_detalhes', _t: Date.now() }),
       ]);
       const clubesNorm = Array.isArray(clubesRaw) ? clubesRaw.map(normalizeClube) : [];
+      const clubesVisiveis = filterClubesByUtec(clubesNorm, utecScope);
       const alunosRows = extractRows(alunosGlobalRaw);
-      const alunosGlobal = alunosRows.map(normalizeAluno);
       const alunosDetalhesRows = extractRows(alunosDetalhesRaw);
-      setGenderStats(buildGenderStats(alunosDetalhesRows));
+      const clubIdByName = clubesNorm.reduce<Record<string, string>>((acc, clube) => {
+        const clubId = String(clube.id || '').trim();
+        const nomeKey = normalizeTextRef(clube.nome);
+        if (!clubId || !nomeKey) return acc;
+        acc[nomeKey] = clubId;
+        return acc;
+      }, {});
 
-      if (alunosGlobal.length > 0) {
-        const alunosByClubId = alunosGlobal.reduce<Record<string, number>>((acc, aluno) => {
-          const clubId = normalizeIdRef(aluno.idClube);
-          if (!clubId) return acc;
-          acc[clubId] = (acc[clubId] || 0) + 1;
-          return acc;
-        }, {});
+      const clubeIdByVisibleId = clubesVisiveis.reduce<Record<string, boolean>>((acc, clube) => {
+        const clubId = normalizeIdRef(clube.id);
+        if (clubId) acc[clubId] = true;
+        return acc;
+      }, {});
 
-        const clubeIdByName = clubesNorm.reduce<Record<string, string>>((acc, clube) => {
-          const clubId = String(clube.id || '').trim();
-          const nomeKey = normalizeTextRef(clube.nome);
-          if (!clubId || !nomeKey) return acc;
-          acc[nomeKey] = clubId;
-          return acc;
-        }, {});
-
-        const alunosByClubName = alunosRows.reduce<Record<string, number>>((acc, row) => {
-          const nomeClube = extractAlunoClubName(row);
-          const nomeKey = normalizeTextRef(nomeClube);
-          const clubId = nomeKey ? clubeIdByName[nomeKey] : '';
-          if (!clubId) return acc;
-          acc[clubId] = (acc[clubId] || 0) + 1;
-          return acc;
-        }, {});
-
-        const clubesComAlunos = clubesNorm.map((clube): ClubeComAlunos => {
-          const clubId = normalizeIdRef(clube.id);
-          const alunosFallback = typeof clube.alunos === 'number' && Number.isFinite(clube.alunos) ? clube.alunos : 0;
-          return {
-            ...clube,
-            alunos: clubId
-              ? (alunosByClubId[clubId] || alunosByClubName[clubId] || alunosFallback)
-              : alunosFallback,
-          };
-        });
-
-        setClubes(clubesComAlunos);
-        return;
-      }
-
-      const clubesComAlunos = await Promise.all(
-        clubesNorm.map(async (clube): Promise<ClubeComAlunos> => {
-          const alunosFallback = typeof clube.alunos === 'number' && Number.isFinite(clube.alunos) ? clube.alunos : 0;
-          const clubId = String(clube?.id || '').trim();
-          if (!clubId) return { ...clube, alunos: alunosFallback };
-
-          try {
-            const alunosRaw = await apiGet<unknown>({ acao: 'listar_alunos', id_clube: clubId, _t: Date.now() });
-            const alunosCount = extractRows(alunosRaw).length;
-            return {
-              ...clube,
-              alunos: alunosCount > 0 ? alunosCount : alunosFallback,
-            };
-          } catch {
-            return {
-              ...clube,
-              alunos: alunosFallback,
-            };
-          }
-        }),
-      );
-
+      const clubesComAlunos = buildClubesComAlunos(clubesVisiveis, alunosRows, clubIdByName);
       setClubes(clubesComAlunos);
+      setGenderStats(buildGenderStats(alunosDetalhesRows, clubIdByName, clubeIdByVisibleId));
     } catch (err) {
       console.error(err);
       setGenderStats({ masculino: 0, feminino: 0 });
@@ -140,7 +105,7 @@ export function useClubes(): UseClubesResult {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [utecScope]);
 
   const loadClubDetails = useCallback(async (clubId: string): Promise<ClubDetails | null> => {
     if (!clubId) return null;
@@ -168,7 +133,7 @@ export function useClubes(): UseClubesResult {
     } finally {
       setDetailsLoading(false);
     }
-  }, []);
+  }, [utecScope]);
 
   const saveClub = useCallback(async (payload: ApiRequestPayload) => {
     return apiPost<ApiBaseResponse>(payload);
@@ -223,13 +188,56 @@ function extractRows(payload: unknown): unknown[] {
   return [];
 }
 
-function buildGenderStats(rows: unknown[]): GenderStats {
+function buildGenderStats(rows: unknown[], clubIdByName: Record<string, string> = {}, allowedClubIds: Record<string, boolean> = {}): GenderStats {
   return rows.reduce<GenderStats>((acc, row) => {
+    const clubName = extractAlunoClubName(row);
+    const clubId = normalizeTextRef(clubName) ? clubIdByName[normalizeTextRef(clubName)] || '' : '';
+    if (Object.keys(allowedClubIds).length > 0 && (!clubId || !allowedClubIds[normalizeIdRef(clubId)])) {
+      return acc;
+    }
+
     const sexo = extractSexo(row);
     if (sexo === 'M') acc.masculino += 1;
     if (sexo === 'F') acc.feminino += 1;
     return acc;
   }, { masculino: 0, feminino: 0 });
+}
+
+function buildClubesComAlunos(clubes: Clube[], alunosRows: unknown[], clubeIdByName: Record<string, string>): ClubeComAlunos[] {
+  if (!clubes.length) return [];
+
+  const alunosGlobal = alunosRows.map(normalizeAluno);
+  const alunosByClubId = alunosGlobal.reduce<Record<string, number>>((acc, aluno) => {
+    const clubId = normalizeIdRef(aluno.idClube);
+    if (!clubId) return acc;
+    acc[clubId] = (acc[clubId] || 0) + 1;
+    return acc;
+  }, {});
+
+  const alunosByClubName = alunosRows.reduce<Record<string, number>>((acc, row) => {
+    const nomeClube = extractAlunoClubName(row);
+    const nomeKey = normalizeTextRef(nomeClube);
+    const clubId = nomeKey ? clubeIdByName[nomeKey] : '';
+    if (!clubId) return acc;
+    acc[clubId] = (acc[clubId] || 0) + 1;
+    return acc;
+  }, {});
+
+  return clubes.map((clube): ClubeComAlunos => {
+    const clubId = normalizeIdRef(clube.id);
+    const alunosFallback = typeof clube.alunos === 'number' && Number.isFinite(clube.alunos) ? clube.alunos : 0;
+    return {
+      ...clube,
+      alunos: clubId
+        ? (alunosByClubId[clubId] || alunosByClubName[clubId] || alunosFallback)
+        : alunosFallback,
+    };
+  });
+}
+
+function filterClubesByUtec(clubes: Clube[], utecScope: string): Clube[] {
+  if (!utecScope) return clubes;
+  return clubes.filter((clube) => normalizeIdRef(clube.utec) === normalizeIdRef(utecScope));
 }
 
 function normalizeIdRef(value: unknown): string {

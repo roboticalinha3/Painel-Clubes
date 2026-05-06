@@ -41,3 +41,12 @@ VITE_API_URL=https://script.google.com/macros/s/AKfycbw3W32H-3G90jQEvne21SQURKAk
 
 - O projeto usa graficos com `react-chartjs-2` / `chart.js`.
 - O app possui metadados para instalacao em mobile (manifest + icones em `public`).
+
+## Geradores de Listagem UTEC
+
+Para gerar listagens de escolas por UTEC na planilha, copie os arquivos correspondentes para o Apps Script:
+
+- **Anos Iniciais**: `scripts/listagem-utec.js` → opcao `Painel de Clubes > Gerar listagem UTEC`
+- **Anos Finais**: `scripts/listagem-utec-finais.js` → opcao `Painel de Clubes > Gerar listagem UTEC - Finais`
+
+Se a aba de origem tiver outro nome, ajuste `SOURCE_SHEET_NAMES` no topo de cada arquivo.

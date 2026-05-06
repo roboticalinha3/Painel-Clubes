@@ -16,8 +16,8 @@ const EMPTY_FORM = {
   categoria: 'Clubes Iniciais',
 };
 
-export function ClubFormModal({ open, title, initialValues = {}, onClose, onSubmit, saving, error = '' }) {
-  const [form, setForm] = useState(() => ({ ...EMPTY_FORM, ...initialValues }));
+export function ClubFormModal({ open, title, initialValues = {}, lockedUtec = '', onClose, onSubmit, saving, error = '' }) {
+  const [form, setForm] = useState(() => ({ ...EMPTY_FORM, ...initialValues, utec: lockedUtec || initialValues.utec || '' }));
 
   if (!open) return null;
 
@@ -44,7 +44,7 @@ export function ClubFormModal({ open, title, initialValues = {}, onClose, onSubm
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Field label="Nome" placeholder="Ex: UTEC GREGORIO 01" value={form.nome} onChange={(value) => updateField('nome', value)} required />
         <Field label="Escola" placeholder="Ex: E.M. João Cabral" value={form.escola} onChange={(value) => updateField('escola', value)} required />
-        <Field label="UTEC" placeholder="Ex: Alto Santa Terezinha" value={form.utec} onChange={(value) => updateField('utec', value)} required />
+        <Field label="UTEC" placeholder="Ex: Alto Santa Terezinha" value={form.utec} onChange={(value) => updateField('utec', value)} required disabled={Boolean(lockedUtec)} />
         <Field label="Professor" placeholder="Ex: Maria Silva" value={form.prof} onChange={(value) => updateField('prof', value)} required />
         <Field label="Estagiário" placeholder="Ex: Arthur Silveira" value={form.estag} onChange={(value) => updateField('estag', value)} required />
         <Field label="Dias" placeholder="Ex: Quinta e Sexta" value={form.dias} onChange={(value) => updateField('dias', value)} required />
@@ -63,12 +63,13 @@ export function ClubFormModal({ open, title, initialValues = {}, onClose, onSubm
   );
 }
 
-function Field({ label, placeholder = '', value, onChange, required = false }) {
+function Field({ label, placeholder = '', value, onChange, required = false, disabled = false }) {
   return (
     <FormTextInput
       label={label}
       placeholder={placeholder}
       value={value}
+      disabled={disabled}
       autoCapitalize="characters"
       onChange={(event) => onChange(toUpperText(event.target.value, ''))}
       required={required}

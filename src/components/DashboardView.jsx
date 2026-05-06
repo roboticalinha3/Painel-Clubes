@@ -391,21 +391,27 @@ function buildCategoria(clubes) {
 function buildUtec(clubes) {
   const counts = clubes.reduce((acc, clube) => {
     const key = normalizeUtecKey(clube.utec);
-    acc[key] = (acc[key] || 0) + 1;
+    if (!key) return acc;
+
+    if (!acc[key]) {
+      acc[key] = { label: String(clube.utec || '').trim() || 'Sem UTEC', value: 0 };
+    }
+
+    acc[key].value += 1;
     return acc;
   }, {});
 
-  const ordered = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+  const ordered = Object.values(counts).sort((a, b) => b.value - a.value);
   const topItems = ordered.slice(0, 6);
-  const restTotal = ordered.slice(6).reduce((sum, [, value]) => sum + value, 0);
+  const restTotal = ordered.slice(6).reduce((sum, item) => sum + item.value, 0);
 
   if (restTotal > 0) {
-    topItems.push(['Outras', restTotal]);
+    topItems.push({ label: 'Outras', value: restTotal });
   }
 
   return {
-    labels: topItems.map(([label]) => stripUtecPrefix(label)),
-    values: topItems.map(([, value]) => value),
+    labels: topItems.map((item) => item.label),
+    values: topItems.map((item) => item.value),
   };
 }
 
@@ -483,15 +489,12 @@ function buildAnalytics(clubesFiltrados, todosClubes) {
 }
 
 function normalizeUtecKey(value) {
-  const text = String(value || '').trim();
-  if (!text) return 'Sem UTEC';
-  return text;
-}
-
-function stripUtecPrefix(value) {
   return String(value || '')
-    .replace(/^UTEC\s*/i, '')
-    .trim() || 'Sem UTEC';
+    .trim()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/gi, '')
+    .toUpperCase();
 }
 
 function normalizeEscolaKey(value) {

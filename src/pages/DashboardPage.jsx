@@ -1,11 +1,10 @@
 import { useNavigate } from 'react-router-dom';
 import { AppSidebar } from '../components/AppSidebar';
 import { DashboardView } from '../components/DashboardView';
-import { canCreateClub } from '../utils/permissions';
 
 export function DashboardPage({
   userName,
-  userRole,
+  allowCreateClub,
   onLogout,
   onOpenNewClubModal,
   clubes,
@@ -74,7 +73,7 @@ export function DashboardPage({
       <AppSidebar
         activeView="dashboard"
         userName={userName}
-        userRole={userRole}
+        allowCreateClub={allowCreateClub}
         onLogout={onLogout}
         onOpenDashboard={() => navigate('/dashboard')}
         onOpenClubs={() => navigate('/clubes')}
@@ -107,7 +106,7 @@ export function DashboardPage({
                 <span className="material-symbols-rounded text-[16px]">picture_as_pdf</span>
                 PDF
               </button>
-              {canCreateClub(userRole) && (
+              {allowCreateClub && (
                 <button type="button" onClick={onOpenNewClubModal} className="btn-3d bg-cetecGreen text-white font-black py-2.5 px-5 rounded-xl border-b-[4px] border-cetecGreenDark hover:bg-[#7ed152] text-xs items-center shadow-sm transition w-full sm:w-auto">
                   + Novo Clube
                 </button>

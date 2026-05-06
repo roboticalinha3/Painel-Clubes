@@ -9,12 +9,22 @@ import { ClubFormPage } from './pages/ClubFormPage';
 import { LoginPageRoute } from './pages/LoginPageRoute';
 import { AUTH_EXPIRED_EVENT, clearSessionToken, getSessionToken, logoutSession, validateSession } from './services/api';
 import type { ApiBaseResponse } from './services/api';
-import { USER_ROLE_STORAGE_KEY, canCreateClub, normalizeAccessLevel } from './utils/permissions';
+import {
+  USER_ROLE_STORAGE_KEY,
+  USER_UTEC_SCOPE_STORAGE_KEY,
+  USER_VIEW_ALL_UTECS_STORAGE_KEY,
+  canCreateClub,
+  normalizeAccessLevel,
+  resolveUserScope,
+} from './utils/permissions';
 
 interface AuthLoginPayload {
   name: string;
   access: string;
   token?: string;
+  tipoUsuario?: string;
+  utec?: string;
+  verTodasUtecs?: boolean;
 }
 
 interface ClubFormValues {
@@ -45,10 +55,13 @@ function App() {
 function AppRoutes() {
   const [userName, setUserName] = useState(localStorage.getItem('usuarioLogado') || '');
   const [userRole, setUserRole] = useState(() => normalizeAccessLevel(localStorage.getItem(USER_ROLE_STORAGE_KEY) || 'editor'));
+  const [userUtecScope, setUserUtecScope] = useState(localStorage.getItem(USER_UTEC_SCOPE_STORAGE_KEY) || '');
+  const [userCanSeeAllUtecs, setUserCanSeeAllUtecs] = useState(() => localStorage.getItem(USER_VIEW_ALL_UTECS_STORAGE_KEY) === 'true');
   const [sessionChecked, setSessionChecked] = useState(false);
   const [newClubModalOpen, setNewClubModalOpen] = useState(false);
   const [newClubSaving, setNewClubSaving] = useState(false);
   const [newClubModalError, setNewClubModalError] = useState('');
+  const resolvedUtecScope = userCanSeeAllUtecs ? '' : userUtecScope;
   const {
     clubes,
     loading,
@@ -65,7 +78,11 @@ function AppRoutes() {
     saveEncontro,
     deleteEncontro,
     updateStatus,
-  } = useClubes();
+  } = useClubes({
+    userName,
+    utecScope: resolvedUtecScope,
+    canViewAllUtecs: userCanSeeAllUtecs,
+  });
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -85,8 +102,12 @@ function AppRoutes() {
         clearSessionToken();
         localStorage.removeItem('usuarioLogado');
         localStorage.removeItem(USER_ROLE_STORAGE_KEY);
+        localStorage.removeItem(USER_UTEC_SCOPE_STORAGE_KEY);
+        localStorage.removeItem(USER_VIEW_ALL_UTECS_STORAGE_KEY);
         setUserName('');
         setUserRole('editor');
+        setUserUtecScope('');
+        setUserCanSeeAllUtecs(false);
         navigate('/login', { replace: true });
         setSessionChecked(true);
         return;
@@ -98,6 +119,12 @@ function AppRoutes() {
         localStorage.setItem(USER_ROLE_STORAGE_KEY, normalizedRole);
         setUserRole(normalizedRole);
       }
+
+      const scope = resolveUserScope(session);
+      localStorage.setItem(USER_UTEC_SCOPE_STORAGE_KEY, scope.utecScope);
+      localStorage.setItem(USER_VIEW_ALL_UTECS_STORAGE_KEY, String(scope.verTodasUtecs));
+      setUserUtecScope(scope.utecScope);
+      setUserCanSeeAllUtecs(scope.verTodasUtecs);
 
       setSessionChecked(true);
     }
@@ -112,8 +139,12 @@ function AppRoutes() {
     function handleAuthExpired() {
       localStorage.removeItem('usuarioLogado');
       localStorage.removeItem(USER_ROLE_STORAGE_KEY);
+      localStorage.removeItem(USER_UTEC_SCOPE_STORAGE_KEY);
+      localStorage.removeItem(USER_VIEW_ALL_UTECS_STORAGE_KEY);
       setUserName('');
       setUserRole('editor');
+      setUserUtecScope('');
+      setUserCanSeeAllUtecs(false);
       navigate('/login', { replace: true });
     }
 
@@ -122,20 +153,26 @@ function AppRoutes() {
   }, [navigate]);
 
   const normalizedRole = normalizeAccessLevel(userRole);
+  const allowCreateClub = canCreateClub(normalizedRole);
 
   useEffect(() => {
     if (userName && sessionChecked && clubes.length === 0) {
       loadClubes();
     }
-  }, [userName, sessionChecked]);
+  }, [userName, sessionChecked, clubes.length, loadClubes]);
 
   const auth = useMemo<AuthContextValue>(() => ({
     userName,
-    login: ({ name, access }: AuthLoginPayload) => {
+    login: ({ name, access, tipoUsuario, utec, verTodasUtecs }: AuthLoginPayload) => {
       localStorage.setItem('usuarioLogado', name);
       localStorage.setItem(USER_ROLE_STORAGE_KEY, normalizeAccessLevel(access));
+      const scope = resolveUserScope({ nome: name, tipo_usuario: tipoUsuario, utec, ver_todas_utecs: verTodasUtecs });
+      localStorage.setItem(USER_UTEC_SCOPE_STORAGE_KEY, scope.utecScope);
+      localStorage.setItem(USER_VIEW_ALL_UTECS_STORAGE_KEY, String(scope.verTodasUtecs));
       setUserName(name);
       setUserRole(normalizeAccessLevel(access));
+      setUserUtecScope(scope.utecScope);
+      setUserCanSeeAllUtecs(scope.verTodasUtecs);
       setSessionChecked(true);
       navigate('/dashboard', { replace: true });
     },
@@ -143,15 +180,19 @@ function AppRoutes() {
       await logoutSession();
       localStorage.removeItem('usuarioLogado');
       localStorage.removeItem(USER_ROLE_STORAGE_KEY);
+      localStorage.removeItem(USER_UTEC_SCOPE_STORAGE_KEY);
+      localStorage.removeItem(USER_VIEW_ALL_UTECS_STORAGE_KEY);
       setUserName('');
       setUserRole('editor');
+      setUserUtecScope('');
+      setUserCanSeeAllUtecs(false);
       setSessionChecked(true);
       navigate('/login', { replace: true });
     },
   }), [navigate, userName]);
 
   function openNewClubModal() {
-    if (!canCreateClub(normalizedRole)) return;
+    if (!allowCreateClub) return;
     setNewClubModalError('');
     setNewClubModalOpen(true);
   }
@@ -198,7 +239,7 @@ function AppRoutes() {
           element={(
             <DashboardPage
               userName={auth.userName}
-              userRole={normalizedRole}
+              allowCreateClub={allowCreateClub}
               onLogout={auth.logout}
               onOpenNewClubModal={openNewClubModal}
               clubes={clubes}
@@ -213,7 +254,7 @@ function AppRoutes() {
           element={(
             <ClubsPanelPage
               userName={auth.userName}
-              userRole={normalizedRole}
+              allowCreateClub={allowCreateClub}
               onLogout={auth.logout}
               onOpenNewClubModal={openNewClubModal}
               clubes={clubes}
@@ -229,6 +270,8 @@ function AppRoutes() {
             <ClubFormPage
               userRole={normalizedRole}
               clubes={clubes}
+              utecScope={resolvedUtecScope}
+              canViewAllUtecs={userCanSeeAllUtecs}
               onSaveClub={saveClub}
             />
           )}

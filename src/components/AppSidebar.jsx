@@ -1,12 +1,10 @@
 import { useEffect, useState } from 'react';
 import iconeEducacode from '../assets/icone.ico';
 import logoEducacode from '../assets/logo-educacode.png';
-import { canCreateClub } from '../utils/permissions';
 
-export function AppSidebar({ activeView, userName, userRole, onLogout, onOpenDashboard, onOpenClubs, onOpenNewClub }) {
+export function AppSidebar({ activeView, userName, allowCreateClub, onLogout, onOpenDashboard, onOpenClubs, onOpenNewClub }) {
   const [expanded, setExpanded] = useState(false);
   const [isMobile, setIsMobile] = useState(() => window.innerWidth < 1024);
-  const allowCreateClub = canCreateClub(userRole);
 
   useEffect(() => {
     function handleResize() {

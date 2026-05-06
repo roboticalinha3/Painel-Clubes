@@ -96,7 +96,7 @@ export function normalizeClube(raw: unknown): Clube {
     id: normalizeId(pickField(raw, ['ID', 'id', 'ID_Clube', 'ID Clube', 'ID_CLUBE', 'IDCLUBE', 'id_clube', 'id clube', 'idclube', 'CODIGO', 'Código', 'COD_CLUBE', 'CODIGO_CLUBE', 'codigo', 'a'], '')),
     nome: toUpperText(pickField(raw, ['Nome', 'nome'], '-'), '-'),
     escola: toUpperText(pickField(raw, ['Escola', 'escola'], '-'), '-'),
-    utec: toUpperText(pickField(raw, ['UTEC', 'utec'], '-'), '-'),
+    utec: toUpperText(pickField(raw, ['ID_UTEC', 'id_utec', 'UTEC_ID', 'utec_id', 'UTEC', 'utec'], '-'), '-'),
     prof: toUpperText(pickField(raw, ['Prof', 'Professor', 'Professores', 'Professores(as)', 'Professor(es)', 'prof', 'professor(a)', 'professores(as)'], '-'), '-'),
     estag: toUpperText(pickField(raw, ['Estag', 'Estagiario', 'Estagiário', 'Estagiarios', 'Estagiários', 'Estagiários(as)', 'estag', 'estagiario(a)', 'estagiário', 'estagiarios(as)'], '-'), '-'),
     dias: toUpperText(pickField(raw, ['Dias', 'dias'], '-'), '-'),

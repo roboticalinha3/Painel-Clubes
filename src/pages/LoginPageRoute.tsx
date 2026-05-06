@@ -7,6 +7,9 @@ interface LoginPayload {
   name: string;
   access: string;
   token?: string;
+  tipoUsuario?: string;
+  utec?: string;
+  verTodasUtecs?: boolean;
 }
 
 interface LoginPageRouteProps {
@@ -19,6 +22,9 @@ interface LoginResponse extends ApiBaseResponse {
   token?: string;
   nome?: string;
   acesso?: string;
+  tipo_usuario?: string;
+  utec?: string;
+  ver_todas_utecs?: boolean;
 }
 
 export function LoginPageRoute({ userName, onLogin }: LoginPageRouteProps) {
@@ -36,7 +42,14 @@ export function LoginPageRoute({ userName, onLogin }: LoginPageRouteProps) {
       const data = await apiPost<LoginResponse>({ acao: 'login', email: email.trim(), senha });
       if (data?.sucesso && data?.token) {
         setSessionToken(data.token);
-        onLogin({ name: data.nome || 'Usuário', access: data.acesso || 'editor', token: data.token });
+        onLogin({
+          name: data.nome || 'Usuário',
+          access: data.acesso || 'editor',
+          token: data.token,
+          tipoUsuario: data.tipo_usuario,
+          utec: data.utec,
+          verTodasUtecs: data.ver_todas_utecs,
+        });
       } else {
         setErro('Credenciais incorretas.');
       }

@@ -24,6 +24,9 @@ export interface SessionValidationResponse extends ApiBaseResponse {
   sucesso: boolean;
   nome?: string;
   acesso?: string;
+  tipo_usuario?: string;
+  utec?: string;
+  ver_todas_utecs?: boolean;
 }
 
 export class AuthError extends Error {
