@@ -1,9 +1,13 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { BaseModal } from './ui/BaseModal';
 import { FormSelect } from './ui/FormSelect';
 import { FormTextInput } from './ui/FormTextInput';
 import { ModalActionRow } from './ui/ModalActionRow';
 import { toUpperText } from '../utils/clubes';
+
+/**
+ * @typedef {{ value: string, label: string }} UtecOption
+ */
 
 const EMPTY_FORM = {
   nome: '',
@@ -16,8 +20,43 @@ const EMPTY_FORM = {
   categoria: 'Clubes Iniciais',
 };
 
-export function ClubFormModal({ open, title, initialValues = {}, lockedUtec = '', onClose, onSubmit, saving, error = '' }) {
+/**
+ * @param {{
+ *   open: boolean,
+ *   title: string,
+ *   initialValues?: any,
+ *   lockedUtec?: string,
+ *   showUtecPlaceholder?: boolean,
+ *   utecOptions?: any[],
+ *   onClose: () => void,
+ *   onSubmit: (form: any) => Promise<void> | void,
+ *   saving: boolean,
+ *   error?: string,
+ * }} props
+ */
+export function ClubFormModal(props) {
+  const {
+    open,
+    title,
+    initialValues = {},
+    lockedUtec = '',
+    showUtecPlaceholder = false,
+    onClose,
+    onSubmit,
+    saving,
+    error = '',
+  } = props;
+  const utecOptions = Array.isArray(props.utecOptions) ? props.utecOptions : [];
   const [form, setForm] = useState(() => ({ ...EMPTY_FORM, ...initialValues, utec: lockedUtec || initialValues.utec || '' }));
+
+  useEffect(() => {
+    if (!open) return;
+
+    setForm((current) => {
+      const defaultUtec = lockedUtec || initialValues.utec || (!showUtecPlaceholder && utecOptions[0]?.value) || current.utec || '';
+      return { ...EMPTY_FORM, ...initialValues, utec: defaultUtec };
+    });
+  }, [open, lockedUtec, initialValues, showUtecPlaceholder, utecOptions]);
 
   if (!open) return null;
 
@@ -44,7 +83,14 @@ export function ClubFormModal({ open, title, initialValues = {}, lockedUtec = ''
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Field label="Nome" placeholder="Ex: UTEC GREGORIO 01" value={form.nome} onChange={(value) => updateField('nome', value)} required />
         <Field label="Escola" placeholder="Ex: E.M. João Cabral" value={form.escola} onChange={(value) => updateField('escola', value)} required />
-        <Field label="UTEC" placeholder="Ex: Alto Santa Terezinha" value={form.utec} onChange={(value) => updateField('utec', value)} required disabled={Boolean(lockedUtec)} />
+        <SelectField
+          label="UTEC"
+          value={form.utec}
+          onChange={(value) => updateField('utec', value)}
+          options={showUtecPlaceholder ? [{ value: '', label: 'Selecione uma UTEC', disabled: true }, ...utecOptions] : utecOptions}
+          disabled={Boolean(lockedUtec)}
+          required
+        />
         <Field label="Professor" placeholder="Ex: Maria Silva" value={form.prof} onChange={(value) => updateField('prof', value)} required />
         <Field label="Estagiário" placeholder="Ex: Arthur Silveira" value={form.estag} onChange={(value) => updateField('estag', value)} required />
         <Field label="Dias" placeholder="Ex: Quinta e Sexta" value={form.dias} onChange={(value) => updateField('dias', value)} required />
@@ -77,8 +123,20 @@ function Field({ label, placeholder = '', value, onChange, required = false, dis
   );
 }
 
-function SelectField({ label, value, onChange, options }) {
+function SelectField({ label, value, onChange, options, disabled = false, required = false }) {
   return (
-    <FormSelect label={label} value={value} onChange={(event) => onChange(event.target.value)} options={options} />
+    <FormSelect
+      label={label}
+      value={value}
+      disabled={disabled}
+      required={required}
+      className="w-full px-4 py-3.5 bg-white border-2 border-gray-200 rounded-2xl focus:outline-none focus:border-cetecGreen font-bold text-sm text-gray-700 shadow-sm appearance-none bg-[linear-gradient(135deg,rgba(255,255,255,1),rgba(248,250,252,1))] pr-11"
+      selectClassName="w-full px-4 py-3.5 bg-white border-2 border-gray-200 rounded-2xl focus:outline-none focus:border-cetecGreen font-bold text-sm text-gray-700 shadow-sm appearance-none bg-[linear-gradient(135deg,rgba(255,255,255,1),rgba(248,250,252,1))] pr-11"
+      optionClassName="bg-white text-gray-800 font-semibold"
+      onChange={(event) => onChange(event.target.value)}
+      options={options}
+      getOptionKey={(option) => option.value}
+      getOptionLabel={(option) => option.label}
+    />
   );
 }

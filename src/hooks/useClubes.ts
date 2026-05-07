@@ -182,10 +182,22 @@ function extractRows(payload: unknown): unknown[] {
   }
 
   // Ultimo fallback: se houver apenas uma propriedade array, usa ela.
-  const firstArray = Object.values(data).find((value) => Array.isArray(value));
+  const firstArray = findFirstArrayValue(data);
   if (Array.isArray(firstArray)) return firstArray;
 
   return [];
+}
+
+function findFirstArrayValue(value: unknown): unknown[] | undefined {
+  if (Array.isArray(value)) return value;
+  if (!value || typeof value !== 'object') return undefined;
+
+  for (const current of Object.values(value as Record<string, unknown>)) {
+    const arrayValue = findFirstArrayValue(current);
+    if (Array.isArray(arrayValue)) return arrayValue;
+  }
+
+  return undefined;
 }
 
 function buildGenderStats(rows: unknown[], clubIdByName: Record<string, string> = {}, allowedClubIds: Record<string, boolean> = {}): GenderStats {

@@ -111,11 +111,11 @@ export function normalizeClube(raw: unknown): Clube {
 
 export function normalizeAluno(raw: unknown): Aluno {
   return {
-    id: normalizeId(pickField(raw, ['ID_Aluno', 'ID Aluno', 'id', 'ID'], '')),
-    idClube: normalizeId(pickField(raw, ['ID_Clube', 'ID Clube', 'ID_CLUBE', 'IDCLUBE', 'id_clube', 'id clube', 'idclube'], '')),
-    matricula: toUpperText(pickField(raw, ['Matricula', 'Matrícula', 'matricula'], ''), ''),
-    nome: toUpperText(pickField(raw, ['Nome', 'nome'], '-'), '-'),
-    dataRegistro: toUpperText(pickField(raw, ['Data_Registro', 'Data Registro', 'data_registro'], ''), ''),
+    id: normalizeId(pickField(raw, ['ID_Aluno', 'ID Aluno', 'ID_ALUNO', 'IDALUNO', 'id_aluno', 'id aluno', 'idaluno', 'id', 'ID'], '')),
+    idClube: normalizeId(pickField(raw, ['ID_Clube', 'ID Clube', 'ID_CLUBE', 'IDCLUBE', 'CLUBE_ID', 'clube_id', 'id_clube', 'id clube', 'idclube'], '')),
+    matricula: toUpperText(pickField(raw, ['Matricula', 'Matrícula', 'MATRICULA', 'matricula', 'Nº Matricula', 'No Matricula', 'Numero Matricula'], ''), ''),
+    nome: toUpperText(pickField(raw, ['Nome', 'nome', 'ALUNO', 'Aluno', 'NOME_ALUNO', 'NOME ALUNO', 'ALUNO_NOME', 'NOME DO ALUNO'], '-'), '-'),
+    dataRegistro: toUpperText(pickField(raw, ['Data_Registro', 'Data Registro', 'DATA_REGISTRO', 'data_registro', 'Data de Registro'], ''), ''),
   };
 }
 

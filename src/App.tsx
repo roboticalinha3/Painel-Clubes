@@ -38,6 +38,11 @@ interface ClubFormValues {
   categoria: string;
 }
 
+interface UtecOption {
+  value: string;
+  label: string;
+}
+
 interface AuthContextValue {
   userName: string;
   login: (payload: AuthLoginPayload) => void;
@@ -154,6 +159,7 @@ function AppRoutes() {
 
   const normalizedRole = normalizeAccessLevel(userRole);
   const allowCreateClub = canCreateClub(normalizedRole);
+  const utecOptions = useMemo(() => buildUtecOptions(clubes, userCanSeeAllUtecs, resolvedUtecScope), [clubes, resolvedUtecScope, userCanSeeAllUtecs]);
 
   useEffect(() => {
     if (userName && sessionChecked) {
@@ -270,6 +276,7 @@ function AppRoutes() {
             <ClubFormPage
               userRole={normalizedRole}
               clubes={clubes}
+              utecOptions={utecOptions as never[]}
               utecScope={resolvedUtecScope}
               canViewAllUtecs={userCanSeeAllUtecs}
               onSaveClub={saveClub}
@@ -305,6 +312,9 @@ function AppRoutes() {
         key={newClubModalOpen ? 'new-open' : 'new-closed'}
         open={newClubModalOpen}
         title="Adicionar Novo Clube"
+        utecOptions={utecOptions as never[]}
+        lockedUtec={resolvedUtecScope}
+        showUtecPlaceholder={userCanSeeAllUtecs}
         onClose={() => setNewClubModalOpen(false)}
         onSubmit={handleCreateClub}
         saving={newClubSaving}
@@ -318,6 +328,38 @@ function getActionError(response: ApiBaseResponse | unknown, fallback: string): 
   if (!response || typeof response !== 'object') return fallback;
   const result = response as ApiBaseResponse;
   return String(result.erro || result.mensagem || result.message || fallback);
+}
+
+function buildUtecOptions(clubes: Array<{ utec?: string; nomeUtec?: string }>, canViewAllUtecs: boolean, utecScope: string): UtecOption[] {
+  const normalize = (value: unknown) => String(value || '').trim().toUpperCase();
+  const normalizeKey = (value: unknown) => String(value || '').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '');
+
+  if (canViewAllUtecs) {
+    const options = new Map<string, UtecOption>();
+
+    clubes.forEach((clube) => {
+      const value = normalize(clube.utec);
+      if (!value) return;
+
+      const nome = String(clube.nomeUtec || '').trim();
+      const label = nome || 'UTEC sem nome';
+      const key = normalizeKey(value);
+      if (!options.has(key)) {
+        options.set(key, { value, label });
+      }
+    });
+
+    return Array.from(options.values()).sort((left, right) => left.label.localeCompare(right.label, 'pt-BR'));
+  }
+
+  const scopedValue = normalize(utecScope);
+  if (!scopedValue) return [];
+
+  const scopedClub = clubes.find((clube) => normalizeKey(clube.utec) === normalizeKey(scopedValue));
+  const value = scopedClub?.utec ? normalize(scopedClub.utec) : scopedValue;
+  const labelBase = scopedClub?.nomeUtec ? String(scopedClub.nomeUtec).trim() : 'UTEC sem nome';
+
+  return [{ value, label: labelBase }];
 }
 
 export default App;

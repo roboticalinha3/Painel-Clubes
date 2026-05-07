@@ -26,6 +26,9 @@ export function normalizeAccessLevel(value: unknown): KnownAccessLevel | string 
   if (normalized.includes('admin')) return ACCESS_LEVELS.ADMIN;
   if (normalized.includes('leit') || normalized.includes('view') || normalized.includes('read')) return ACCESS_LEVELS.VIEWER;
   if (normalized.includes('edit') || normalized.includes('editor')) return ACCESS_LEVELS.EDITOR;
+  if (normalized.includes('criar') || normalized.includes('cadast') || normalized.includes('create') || normalized.includes('add')) {
+    return ACCESS_LEVELS.EDITOR;
+  }
   if (normalized.includes('utec')) return ACCESS_LEVELS.EDITOR;
   if (normalized.includes('usu') || normalized.includes('user')) return ACCESS_LEVELS.EDITOR;
   if (!normalized) return ACCESS_LEVELS.EDITOR;

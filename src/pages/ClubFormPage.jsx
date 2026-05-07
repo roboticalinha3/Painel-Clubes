@@ -3,7 +3,7 @@ import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import { ClubFormModal } from '../components/ClubFormModal';
 import { canEditClub } from '../utils/permissions';
 
-export function ClubFormPage({ userRole, clubes, utecScope = '', canViewAllUtecs = false, onSaveClub }) {
+export function ClubFormPage({ userRole, clubes, utecOptions = [], utecScope = '', canViewAllUtecs = false, onSaveClub }) {
   const { clubId } = useParams();
   const navigate = useNavigate();
   const [saving, setSaving] = useState(false);
@@ -47,7 +47,9 @@ export function ClubFormPage({ userRole, clubes, utecScope = '', canViewAllUtecs
       open
       title={editingClub ? 'Editar clube' : 'Novo clube'}
       initialValues={editingClub || undefined}
+      utecOptions={utecOptions}
       lockedUtec={scopedUtec}
+      showUtecPlaceholder={canViewAllUtecs}
       onClose={() => navigate('/dashboard')}
       onSubmit={handleSubmit}
       saving={saving}
