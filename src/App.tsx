@@ -178,6 +178,7 @@ function AppRoutes() {
   const normalizedRole = normalizeAccessLevel(userRole);
   const allowCreateClub = canCreateClub(normalizedRole);
   const allowAdminTools = canDeleteClub(normalizedRole) || canManageUsers(normalizedRole);
+  const allowUsersTools = allowAdminTools;
   const utecOptions = useMemo(() => buildUtecOptions(clubes, userCanSeeAllUtecs, resolvedUtecScope), [clubes, resolvedUtecScope, userCanSeeAllUtecs]);
   const loadAdminUsers = useCallback(async () => {
     if (!allowAdminTools) return;
@@ -304,6 +305,7 @@ function AppRoutes() {
               userName={auth.userName}
               allowCreateClub={allowCreateClub}
               allowAdminTools={allowAdminTools}
+              allowUsersTools={allowUsersTools}
               onLogout={auth.logout}
               onOpenNewClubModal={openNewClubModal}
               onOpenAdminDeleteClubs={() => navigate('/admin/excluir-clubes')}
@@ -322,6 +324,7 @@ function AppRoutes() {
               userName={auth.userName}
               allowCreateClub={allowCreateClub}
               allowAdminTools={allowAdminTools}
+              allowUsersTools={allowUsersTools}
               onLogout={auth.logout}
               onOpenNewClubModal={openNewClubModal}
               onOpenAdminDeleteClubs={() => navigate('/admin/excluir-clubes')}
@@ -355,6 +358,7 @@ function AppRoutes() {
               userName={auth.userName}
               userRole={normalizedRole}
               allowAdminTools={allowAdminTools}
+              allowUsersTools={allowUsersTools}
               onLogout={auth.logout}
               onOpenDashboard={() => navigate('/dashboard')}
               onOpenClubs={() => navigate('/clubes')}
@@ -376,6 +380,7 @@ function AppRoutes() {
               userName={auth.userName}
               userRole={normalizedRole}
               allowAdminTools={allowAdminTools}
+              allowUsersTools={allowUsersTools}
               onLogout={auth.logout}
               onOpenDashboard={() => navigate('/dashboard')}
               onOpenClubs={() => navigate('/clubes')}
@@ -399,6 +404,7 @@ function AppRoutes() {
               userName={auth.userName}
               userRole={normalizedRole}
               allowAdminTools={allowAdminTools}
+              allowUsersTools={allowUsersTools}
               onLogout={auth.logout}
               onOpenNewClubModal={openNewClubModal}
               onOpenAdminDeleteClubs={() => navigate('/admin/excluir-clubes')}

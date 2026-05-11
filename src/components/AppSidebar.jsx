@@ -7,6 +7,7 @@ export function AppSidebar({
   userName,
   allowCreateClub,
   allowAdminTools = false,
+  allowUsersTools = false,
   onLogout,
   onOpenDashboard,
   onOpenClubs,
@@ -69,7 +70,7 @@ export function AppSidebar({
               <span>Clubes</span>
             </button>
 
-            {allowAdminTools && (
+            {allowUsersTools && (
               <>
                 <button
                   type="button"
@@ -130,7 +131,7 @@ export function AppSidebar({
           {expandedDesktop && <span className="whitespace-nowrap">Painel de Clubes</span>}
         </button>
 
-        {allowAdminTools && (
+        {allowUsersTools && (
           <>
             <button
               type="button"

@@ -4,7 +4,7 @@ import { AppSidebar } from '../components/AppSidebar';
 import { statusKey } from '../utils/clubes';
 import { ConfirmPasswordModal } from '../components/ui/ConfirmPasswordModal';
 
-export function ClubsPanelPage({ userName, allowCreateClub, allowAdminTools = false, onLogout, onOpenNewClubModal, onOpenAdminDeleteClubs, onOpenAdminUsers, clubes, loading, error, onDeleteClub, onRefreshClubs }) {
+export function ClubsPanelPage({ userName, allowCreateClub, allowAdminTools = false, allowUsersTools = false, onLogout, onOpenNewClubModal, onOpenAdminDeleteClubs, onOpenAdminUsers, clubes, loading, error, onDeleteClub, onRefreshClubs }) {
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [quickFilter, setQuickFilter] = useState('all');
@@ -36,6 +36,7 @@ export function ClubsPanelPage({ userName, allowCreateClub, allowAdminTools = fa
         userName={userName}
         allowCreateClub={allowCreateClub}
         allowAdminTools={allowAdminTools}
+        allowUsersTools={allowUsersTools}
         onLogout={onLogout}
         onOpenDashboard={() => navigate('/dashboard')}
         onOpenClubs={() => navigate('/clubes')}

@@ -20,6 +20,7 @@ export function AdminUsersPage({
   userName,
   userRole,
   allowAdminTools,
+  allowUsersTools = false,
   onLogout,
   onOpenDashboard,
   onOpenClubs,
@@ -46,6 +47,7 @@ export function AdminUsersPage({
   const [deleteSaving, setDeleteSaving] = useState(false);
 
   const isAdmin = String(userRole || '').toLowerCase() === 'administrador';
+  const canManageUsers = isAdmin && allowAdminTools;
   const options = useMemo(() => (Array.isArray(utecOptions) ? utecOptions : []), [utecOptions]);
   const normalizedSearch = search.trim().toLowerCase();
 
@@ -63,7 +65,7 @@ export function AdminUsersPage({
     });
   }, [usuarios, quickFilter, normalizedSearch]);
 
-  if (!isAdmin || !allowAdminTools) {
+  if (!allowUsersTools) {
     return <Navigate to="/dashboard" replace />;
   }
 
@@ -178,6 +180,7 @@ export function AdminUsersPage({
         userName={userName}
         allowCreateClub={true}
         allowAdminTools={allowAdminTools}
+        allowUsersTools={allowUsersTools}
         onLogout={onLogout}
         onOpenDashboard={onOpenDashboard}
         onOpenClubs={onOpenClubs}
@@ -196,9 +199,11 @@ export function AdminUsersPage({
               <h2 className="text-2xl sm:text-3xl font-black text-cetecBlue tracking-tight">Usuários</h2>
               <p className="text-gray-500 font-bold text-xs mt-1">Cadastro, consulta e remoção de usuários do painel</p>
             </div>
-            <button type="button" onClick={openAddModal} className="btn-3d bg-cetecGreen text-white font-black py-2.5 px-5 rounded-xl border-b-[4px] border-cetecGreenDark hover:bg-[#7ed152] text-xs items-center shadow-sm transition w-full sm:w-auto">
-              + Novo Usuário
-            </button>
+            {canManageUsers && (
+              <button type="button" onClick={openAddModal} className="btn-3d bg-cetecGreen text-white font-black py-2.5 px-5 rounded-xl border-b-[4px] border-cetecGreenDark hover:bg-[#7ed152] text-xs items-center shadow-sm transition w-full sm:w-auto">
+                + Novo Usuário
+              </button>
+            )}
           </div>
 
           <div className="clubes-toolbar-row mt-4">
@@ -255,13 +260,15 @@ export function AdminUsersPage({
 
                       <div className="flex items-end justify-between mt-auto pt-4 border-t border-gray-50">
                         <span className={`status-badge ${accessClass(access)} font-black text-xs px-3 py-1.5 rounded-lg inline-flex items-center border w-fit`}>{accessLabel(access).toUpperCase()}</span>
-                        <button
-                          type="button"
-                          onClick={() => requestDelete(user)}
-                          className="bg-red-500 text-white font-black px-4 py-2.5 rounded-xl border-b-[4px] border-red-700 hover:bg-red-600 transition"
-                        >
-                          EXCLUIR
-                        </button>
+                        {canManageUsers && (
+                          <button
+                            type="button"
+                            onClick={() => requestDelete(user)}
+                            className="bg-red-500 text-white font-black px-4 py-2.5 rounded-xl border-b-[4px] border-red-700 hover:bg-red-600 transition"
+                          >
+                            EXCLUIR
+                          </button>
+                        )}
                       </div>
                     </article>
                   );

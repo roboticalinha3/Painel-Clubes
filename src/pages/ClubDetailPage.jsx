@@ -8,7 +8,7 @@ import { ModalActionRow } from '../components/ui/ModalActionRow';
 import { formatDateBR, statusKey, toUpperText, toUpperTextPreserveSpaces } from '../utils/clubes';
 import { canCreateAluno, canCreateEncontro, canDeleteAluno, canDeleteEncontro, canUpdateStatus } from '../utils/permissions';
 
-export function ClubDetailPage({ userName, userRole, allowAdminTools = false, onLogout, onOpenNewClubModal, onOpenAdminDeleteClubs, onOpenAdminUsers, clubes, details, detailsLoading = false, detailsError, onLoadDetails, onRefresh, onSaveClub, onSaveAluno, onDeleteAluno, onSaveEncontro, onDeleteEncontro, onUpdateStatus }) {
+export function ClubDetailPage({ userName, userRole, allowAdminTools = false, allowUsersTools = false, onLogout, onOpenNewClubModal, onOpenAdminDeleteClubs, onOpenAdminUsers, clubes, details, detailsLoading = false, detailsError, onLoadDetails, onRefresh, onSaveClub, onSaveAluno, onDeleteAluno, onSaveEncontro, onDeleteEncontro, onUpdateStatus }) {
   const { clubId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
@@ -320,6 +320,7 @@ export function ClubDetailPage({ userName, userRole, allowAdminTools = false, on
         userName={userName}
         userRole={userRole}
         allowAdminTools={allowAdminTools}
+        allowUsersTools={allowUsersTools}
         onLogout={onLogout}
         onOpenDashboard={() => navigate('/dashboard')}
         onOpenClubs={() => navigate('/clubes')}

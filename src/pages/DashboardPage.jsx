@@ -6,6 +6,7 @@ export function DashboardPage({
   userName,
   allowCreateClub,
   allowAdminTools = false,
+  allowUsersTools = false,
   onLogout,
   onOpenNewClubModal,
   onOpenAdminDeleteClubs,
@@ -78,6 +79,7 @@ export function DashboardPage({
         userName={userName}
         allowCreateClub={allowCreateClub}
         allowAdminTools={allowAdminTools}
+        allowUsersTools={allowUsersTools}
         onLogout={onLogout}
         onOpenDashboard={() => navigate('/dashboard')}
         onOpenClubs={() => navigate('/clubes')}

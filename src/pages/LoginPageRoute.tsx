@@ -30,6 +30,7 @@ interface LoginResponse extends ApiBaseResponse {
 export function LoginPageRoute({ userName, onLogin }: LoginPageRouteProps) {
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [erro, setErro] = useState('');
 
@@ -77,14 +78,25 @@ export function LoginPageRoute({ userName, onLogin }: LoginPageRouteProps) {
             className="w-full px-4 sm:px-5 py-3.5 sm:py-4 bg-gray-50 border-2 border-gray-200 rounded-2xl focus:outline-none focus:border-cetecGreen font-bold text-gray-700"
             required
           />
-          <input
-            type="password"
-            value={senha}
-            onChange={(event) => setSenha(event.target.value)}
-            placeholder="Digite sua senha"
-            className="w-full px-4 sm:px-5 py-3.5 sm:py-4 bg-gray-50 border-2 border-gray-200 rounded-2xl focus:outline-none focus:border-cetecGreen font-bold text-gray-700"
-            required
-          />
+          <div className="relative">
+            <input
+              type={showPassword ? 'text' : 'password'}
+              value={senha}
+              onChange={(event) => setSenha(event.target.value)}
+              placeholder="Digite sua senha"
+              className="w-full px-4 sm:px-5 py-3.5 sm:py-4 pr-12 bg-gray-50 border-2 border-gray-200 rounded-2xl focus:outline-none focus:border-cetecGreen font-bold text-gray-700"
+              required
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword((current) => !current)}
+              className="absolute inset-y-0 right-0 px-3 text-gray-500 hover:text-cetecBlue"
+              aria-label={showPassword ? 'Ocultar senha' : 'Exibir senha'}
+              title={showPassword ? 'Ocultar senha' : 'Exibir senha'}
+            >
+              <span className="material-symbols-rounded text-[20px]">{showPassword ? 'visibility_off' : 'visibility'}</span>
+            </button>
+          </div>
 
           {erro && <p className="text-red-500 font-bold text-sm">{erro}</p>}
 

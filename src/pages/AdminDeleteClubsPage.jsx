@@ -8,6 +8,7 @@ export function AdminDeleteClubsPage({
   userName,
   userRole,
   allowAdminTools,
+  allowUsersTools = false,
   onLogout,
   onOpenDashboard,
   onOpenClubs,
@@ -85,6 +86,7 @@ export function AdminDeleteClubsPage({
         userName={userName}
         allowCreateClub={true}
         allowAdminTools={allowAdminTools}
+        allowUsersTools={allowUsersTools}
         onLogout={onLogout}
         onOpenDashboard={onOpenDashboard}
         onOpenClubs={onOpenClubs}

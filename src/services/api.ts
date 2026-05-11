@@ -101,7 +101,7 @@ function jsonpRequest(params: RecordValue): Promise<unknown> {
       (window as unknown as Record<string, unknown>)[callbackName] = () => {};
       if (script.parentNode) script.parentNode.removeChild(script);
       reject(new Error('Tempo de resposta excedido no JSONP.'));
-    }, 30000);
+    }, 60000);
 
     function cleanupSuccess() {
       clearTimeout(timeout);
