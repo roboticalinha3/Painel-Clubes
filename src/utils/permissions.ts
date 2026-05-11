@@ -75,6 +75,14 @@ export function canDeleteEncontro(value: unknown): boolean {
   return normalizeAccessLevel(value) === ACCESS_LEVELS.ADMIN;
 }
 
+export function canDeleteClub(value: unknown): boolean {
+  return normalizeAccessLevel(value) === ACCESS_LEVELS.ADMIN;
+}
+
+export function canManageUsers(value: unknown): boolean {
+  return normalizeAccessLevel(value) === ACCESS_LEVELS.ADMIN;
+}
+
 export function isUtecScopedUser(userName: unknown): boolean {
   return normalizeUtecScope(userName) !== '';
 }
@@ -91,7 +99,7 @@ export function normalizeUtecScope(value: unknown): string {
 export function resolveUserScope(session: unknown): UserScopeInfo {
   const record = session && typeof session === 'object' ? (session as Record<string, unknown>) : {};
   const tipoUsuario = normalizeTextValue(record.tipo_usuario ?? record.tipoUsuario ?? record.tipo ?? record.perfil);
-  const verTodasUtecs = toBoolean(record.ver_todas_utecs ?? record.verTodasUtecs ?? record.todas_utecs ?? record.ver_todas_utechs);
+  const verTodasUtecs = toBoolean(record.ver_todas_utecs ?? record.ver_todas_utec ?? record.verTodasUtecs ?? record.todas_utecs ?? record.ver_todas_utechs);
   const utecFromPayload = normalizeUtecScope(
     record.utec ?? record.id_utec ?? record.utecId ?? record.escopo_utec ?? record.utecScope ?? '',
   );

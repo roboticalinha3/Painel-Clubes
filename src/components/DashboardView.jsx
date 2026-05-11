@@ -390,7 +390,7 @@ function buildCategoria(clubes) {
 
 function buildUtec(clubes) {
   const counts = clubes.reduce((acc, clube) => {
-    const key = normalizeUtecKey(clube.utec);
+    const key = normalizeUtecKey(clube.utec || clube.id_utec);
     if (!key) return acc;
 
     if (!acc[key]) {
@@ -422,7 +422,7 @@ function getUtecLabel(clube) {
   const nome = String(clube?.nomeUtec || clube?.nome_utec || '').trim();
   if (nome) return nome;
 
-  const id = String(clube?.utec || '').trim();
+  const id = String(clube?.utec || clube?.id_utec || '').trim();
   if (id) return id;
 
   return 'Sem UTEC';

@@ -5,10 +5,10 @@ import { BaseModal } from '../components/ui/BaseModal';
 import { FormSelect } from '../components/ui/FormSelect';
 import { FormTextInput } from '../components/ui/FormTextInput';
 import { ModalActionRow } from '../components/ui/ModalActionRow';
-import { formatDateBR, statusKey, toUpperText } from '../utils/clubes';
+import { formatDateBR, statusKey, toUpperText, toUpperTextPreserveSpaces } from '../utils/clubes';
 import { canCreateAluno, canCreateEncontro, canDeleteAluno, canDeleteEncontro, canUpdateStatus } from '../utils/permissions';
 
-export function ClubDetailPage({ userName, userRole, onLogout, onOpenNewClubModal, clubes, details, detailsLoading = false, detailsError, onLoadDetails, onRefresh, onSaveAluno, onDeleteAluno, onSaveEncontro, onDeleteEncontro, onUpdateStatus }) {
+export function ClubDetailPage({ userName, userRole, allowAdminTools = false, onLogout, onOpenNewClubModal, onOpenAdminDeleteClubs, onOpenAdminUsers, clubes, details, detailsLoading = false, detailsError, onLoadDetails, onRefresh, onSaveClub, onSaveAluno, onDeleteAluno, onSaveEncontro, onDeleteEncontro, onUpdateStatus }) {
   const { clubId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
@@ -19,12 +19,15 @@ export function ClubDetailPage({ userName, userRole, onLogout, onOpenNewClubModa
   const [savingStatus, setSavingStatus] = useState(false);
   const [savingAluno, setSavingAluno] = useState(false);
   const [savingEncontro, setSavingEncontro] = useState(false);
+  const [savingEstag, setSavingEstag] = useState(false);
   const [actionError, setActionError] = useState('');
   const [alunoLoadingMap, setAlunoLoadingMap] = useState({});
   const [encontroLoadingMap, setEncontroLoadingMap] = useState({});
   const [confirmRemoval, setConfirmRemoval] = useState(null);
   const [novoAluno, setNovoAluno] = useState({ matricula: '', nome: '' });
   const [novoEncontro, setNovoEncontro] = useState({ modulo: 'lista-scratch', assunto: '', data: '' });
+  const [showEstagModal, setShowEstagModal] = useState(false);
+  const [novoEstag, setNovoEstag] = useState('');
 
   const club = useMemo(() => clubes.find((item) => isSameClubId(item.id, routeClubId)) || null, [clubes, routeClubId]);
   const allowCreateAluno = canCreateAluno(userRole);
@@ -146,6 +149,46 @@ export function ClubDetailPage({ userName, userRole, onLogout, onOpenNewClubModa
       setActionError('Não foi possível salvar o encontro.');
     } finally {
       setSavingEncontro(false);
+    }
+  }
+
+  function openEditEstagModal() {
+    setActionError('');
+    setNovoEstag(String(club.estag || '').trim() === '-' ? '' : String(club.estag || ''));
+    setShowEstagModal(true);
+  }
+
+  async function handleSaveEstag(event) {
+    event.preventDefault();
+    if (!onSaveClub) return;
+
+    setSavingEstag(true);
+    setActionError('');
+    try {
+      const response = await onSaveClub({
+        acao: 'atualizar_clube',
+        id_clube: club.id,
+        nome: club.nome,
+        escola: club.escola,
+        utec: club.utec,
+        prof: club.prof,
+        estag: novoEstag,
+        dias: club.dias,
+        horario: club.horario,
+        categoria: club.categoria,
+        status: club.status,
+      });
+
+      if (response?.sucesso) {
+        setShowEstagModal(false);
+        await refreshDetails();
+      } else {
+        setActionError(getErrorMessage(response, 'Não foi possível atualizar o nome do estagiário.'));
+      }
+    } catch {
+      setActionError('Não foi possível atualizar o nome do estagiário.');
+    } finally {
+      setSavingEstag(false);
     }
   }
 
@@ -276,10 +319,13 @@ export function ClubDetailPage({ userName, userRole, onLogout, onOpenNewClubModa
         activeView="clubs"
         userName={userName}
         userRole={userRole}
+        allowAdminTools={allowAdminTools}
         onLogout={onLogout}
         onOpenDashboard={() => navigate('/dashboard')}
         onOpenClubs={() => navigate('/clubes')}
         onOpenNewClub={onOpenNewClubModal}
+        onOpenAdminDeleteClubs={onOpenAdminDeleteClubs}
+        onOpenAdminUsers={onOpenAdminUsers}
       />
 
       <main className="app-main-pane dashboard-main-modern flex-1 flex flex-col min-h-0 overflow-visible lg:overflow-hidden relative bg-bgDashboard lg:h-screen">
@@ -321,7 +367,16 @@ export function ClubDetailPage({ userName, userRole, onLogout, onOpenNewClubModa
                   <div className="flex flex-col border-t sm:border-t-0 sm:border-l border-gray-200 pt-3 sm:pt-0 sm:pl-6 min-w-0">
                     <span className="text-[10px] font-bold text-gray-400 uppercase mb-1">Equipe Responsável</span>
                     <span className="text-sm font-black text-gray-800 break-words">👩‍🏫 Profª {club.prof}</span>
-                    <span className="text-xs font-bold text-purple-600 mt-0.5 break-words">👨‍💻 {club.estag} (Estag)</span>
+                    <div className="mt-0.5 flex flex-wrap items-center gap-2">
+                      <span className="text-xs font-bold text-purple-600 break-words">👨‍💻 {club.estag} (Estag)</span>
+                      <button
+                        type="button"
+                        onClick={openEditEstagModal}
+                        className="text-[10px] font-black px-2 py-1 rounded-md border border-purple-200 bg-purple-50 text-purple-700 hover:bg-purple-100 transition shrink-0"
+                      >
+                        EDITAR
+                      </button>
+                    </div>
                   </div>
                   <div className="flex flex-col border-t xl:border-t-0 xl:border-l border-gray-200 pt-3 xl:pt-0 xl:pl-6 min-w-0">
                     <span className="text-[10px] font-bold text-gray-400 uppercase mb-1">Agenda</span>
@@ -450,7 +505,7 @@ export function ClubDetailPage({ userName, userRole, onLogout, onOpenNewClubModa
             placeholder="Ex: INTRODUÇÃO AO SCRATCH"
             value={novoEncontro.assunto}
             autoCapitalize="characters"
-            onChange={(event) => setNovoEncontro((curr) => ({ ...curr, assunto: toUpperText(event.target.value, '') }))}
+            onChange={(event) => setNovoEncontro((curr) => ({ ...curr, assunto: toUpperTextPreserveSpaces(event.target.value, '') }))}
             required
           />
           <FormTextInput
@@ -465,6 +520,32 @@ export function ClubDetailPage({ userName, userRole, onLogout, onOpenNewClubModa
             onCancel={() => setShowEncontroModal(false)}
             submitLabel="Salvar Encontro"
             saving={savingEncontro}
+          />
+        </BaseModal>
+      )}
+
+      {showEstagModal && (
+        <BaseModal
+          open={showEstagModal}
+          onClose={() => setShowEstagModal(false)}
+          title="Editar estagiário"
+          backdropClass="fixed inset-0 bg-cetecBlue/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          sizeClass="ui-modal-card ui-modal-card--sm"
+          contentAs="form"
+          contentProps={{ onSubmit: handleSaveEstag }}
+          bodyClass="ui-modal-body space-y-4"
+        >
+          <FormTextInput
+            placeholder="Ex: Arthur Silveira"
+            value={novoEstag}
+            autoCapitalize="characters"
+            onChange={(event) => setNovoEstag(toUpperTextPreserveSpaces(event.target.value, ''))}
+            required
+          />
+          <ModalActionRow
+            onCancel={() => setShowEstagModal(false)}
+            submitLabel="Salvar Estagiário"
+            saving={savingEstag}
           />
         </BaseModal>
       )}

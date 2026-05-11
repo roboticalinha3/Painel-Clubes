@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { HashRouter, Navigate, Route, Routes, useNavigate } from 'react-router-dom';
 import { ClubFormModal } from './components/ClubFormModal';
 import { useClubes } from './hooks/useClubes';
@@ -6,14 +6,19 @@ import { DashboardPage } from './pages/DashboardPage';
 import { ClubsPanelPage } from './pages/ClubsPanelPage';
 import { ClubDetailPage } from './pages/ClubDetailPage';
 import { ClubFormPage } from './pages/ClubFormPage';
+import { AdminDeleteClubsPage } from './pages/AdminDeleteClubsPage';
+import { AdminUsersPage } from './pages/AdminUsersPage';
 import { LoginPageRoute } from './pages/LoginPageRoute';
-import { AUTH_EXPIRED_EVENT, clearSessionToken, getSessionToken, logoutSession, validateSession } from './services/api';
+import { AUTH_EXPIRED_EVENT, apiGet, apiPost, clearSessionToken, getSessionToken, logoutSession, validateSession } from './services/api';
 import type { ApiBaseResponse } from './services/api';
+import { pickField } from './utils/clubes';
 import {
   USER_ROLE_STORAGE_KEY,
   USER_UTEC_SCOPE_STORAGE_KEY,
   USER_VIEW_ALL_UTECS_STORAGE_KEY,
   canCreateClub,
+  canDeleteClub,
+  canManageUsers,
   normalizeAccessLevel,
   resolveUserScope,
 } from './utils/permissions';
@@ -43,6 +48,16 @@ interface UtecOption {
   label: string;
 }
 
+interface AdminUser {
+  id: string;
+  nome: string;
+  email: string;
+  acesso: string;
+  tipoUsuario: string;
+  utec: string;
+  verTodasUtecs: boolean;
+}
+
 interface AuthContextValue {
   userName: string;
   login: (payload: AuthLoginPayload) => void;
@@ -66,6 +81,9 @@ function AppRoutes() {
   const [newClubModalOpen, setNewClubModalOpen] = useState(false);
   const [newClubSaving, setNewClubSaving] = useState(false);
   const [newClubModalError, setNewClubModalError] = useState('');
+  const [adminUsers, setAdminUsers] = useState<AdminUser[]>([]);
+  const [adminUsersLoading, setAdminUsersLoading] = useState(false);
+  const [adminUsersError, setAdminUsersError] = useState('');
   const resolvedUtecScope = userCanSeeAllUtecs ? '' : userUtecScope;
   const {
     clubes,
@@ -159,13 +177,36 @@ function AppRoutes() {
 
   const normalizedRole = normalizeAccessLevel(userRole);
   const allowCreateClub = canCreateClub(normalizedRole);
+  const allowAdminTools = canDeleteClub(normalizedRole) || canManageUsers(normalizedRole);
   const utecOptions = useMemo(() => buildUtecOptions(clubes, userCanSeeAllUtecs, resolvedUtecScope), [clubes, resolvedUtecScope, userCanSeeAllUtecs]);
+  const loadAdminUsers = useCallback(async () => {
+    if (!allowAdminTools) return;
+
+    setAdminUsersLoading(true);
+    setAdminUsersError('');
+
+    try {
+      const response = await apiGet<unknown>({ acao: 'listar_usuarios', _t: Date.now() });
+      setAdminUsers(extractAdminUsers(response));
+    } catch {
+      setAdminUsers([]);
+      setAdminUsersError('Não foi possível carregar os usuários.');
+    } finally {
+      setAdminUsersLoading(false);
+    }
+  }, [allowAdminTools]);
 
   useEffect(() => {
     if (userName && sessionChecked) {
       loadClubes();
     }
   }, [userName, sessionChecked, loadClubes, resolvedUtecScope, userCanSeeAllUtecs]);
+
+  useEffect(() => {
+    if (userName && sessionChecked && allowAdminTools) {
+      loadAdminUsers();
+    }
+  }, [userName, sessionChecked, allowAdminTools, loadAdminUsers]);
 
   const auth = useMemo<AuthContextValue>(() => ({
     userName,
@@ -222,6 +263,22 @@ function AppRoutes() {
     }
   }
 
+  async function handleDeleteClub(payload: Record<string, unknown>) {
+    return apiPost<ApiBaseResponse>(payload);
+  }
+
+  async function handleSaveUser(payload: Record<string, unknown>) {
+    return apiPost<ApiBaseResponse>(payload);
+  }
+
+  async function handleDeleteUser(payload: Record<string, unknown>) {
+    return apiPost<ApiBaseResponse>(payload);
+  }
+
+  async function refreshAdminUsers() {
+    await loadAdminUsers();
+  }
+
   if (!sessionChecked && userName) {
     return null;
   }
@@ -246,8 +303,11 @@ function AppRoutes() {
             <DashboardPage
               userName={auth.userName}
               allowCreateClub={allowCreateClub}
+              allowAdminTools={allowAdminTools}
               onLogout={auth.logout}
               onOpenNewClubModal={openNewClubModal}
+              onOpenAdminDeleteClubs={() => navigate('/admin/excluir-clubes')}
+              onOpenAdminUsers={() => navigate('/admin/usuarios')}
               clubes={clubes}
               genderStats={genderStats}
               loading={loading}
@@ -261,8 +321,13 @@ function AppRoutes() {
             <ClubsPanelPage
               userName={auth.userName}
               allowCreateClub={allowCreateClub}
+              allowAdminTools={allowAdminTools}
               onLogout={auth.logout}
               onOpenNewClubModal={openNewClubModal}
+              onOpenAdminDeleteClubs={() => navigate('/admin/excluir-clubes')}
+              onOpenAdminUsers={() => navigate('/admin/usuarios')}
+              onDeleteClub={handleDeleteClub}
+              onRefreshClubs={loadClubes}
               clubes={clubes}
               loading={loading}
               error={error}
@@ -284,19 +349,67 @@ function AppRoutes() {
           )}
         />
         <Route
+          path="/admin/excluir-clubes"
+          element={(
+            <AdminDeleteClubsPage
+              userName={auth.userName}
+              userRole={normalizedRole}
+              allowAdminTools={allowAdminTools}
+              onLogout={auth.logout}
+              onOpenDashboard={() => navigate('/dashboard')}
+              onOpenClubs={() => navigate('/clubes')}
+              onOpenNewClub={openNewClubModal}
+              onOpenAdminDeleteClubs={() => navigate('/admin/excluir-clubes')}
+              onOpenAdminUsers={() => navigate('/admin/usuarios')}
+              clubes={clubes}
+              loading={loading}
+              error={error}
+              onDeleteClub={handleDeleteClub}
+              onRefreshClubs={loadClubes}
+            />
+          )}
+        />
+        <Route
+          path="/admin/usuarios"
+          element={(
+            <AdminUsersPage
+              userName={auth.userName}
+              userRole={normalizedRole}
+              allowAdminTools={allowAdminTools}
+              onLogout={auth.logout}
+              onOpenDashboard={() => navigate('/dashboard')}
+              onOpenClubs={() => navigate('/clubes')}
+              onOpenNewClub={openNewClubModal}
+              onOpenAdminDeleteClubs={() => navigate('/admin/excluir-clubes')}
+              onOpenAdminUsers={() => navigate('/admin/usuarios')}
+              utecOptions={utecOptions as never[]}
+              usuarios={adminUsers as never[]}
+              usuariosLoading={adminUsersLoading}
+              usuariosError={adminUsersError}
+              onRefreshUsuarios={refreshAdminUsers}
+              onSaveUser={handleSaveUser}
+              onDeleteUser={handleDeleteUser}
+            />
+          )}
+        />
+        <Route
           path="/clubes/:clubId"
           element={(
             <ClubDetailPage
               userName={auth.userName}
               userRole={normalizedRole}
+              allowAdminTools={allowAdminTools}
               onLogout={auth.logout}
               onOpenNewClubModal={openNewClubModal}
+              onOpenAdminDeleteClubs={() => navigate('/admin/excluir-clubes')}
+              onOpenAdminUsers={() => navigate('/admin/usuarios')}
               clubes={clubes}
               details={details}
               detailsLoading={detailsLoading}
               detailsError={detailsError}
               onLoadDetails={loadClubDetails}
               onRefresh={loadClubes}
+              onSaveClub={saveClub}
               onSaveAluno={saveAluno}
               onDeleteAluno={deleteAluno}
               onSaveEncontro={saveEncontro}
@@ -324,6 +437,40 @@ function AppRoutes() {
   );
 }
 
+function extractAdminUsers(payload: unknown): AdminUser[] {
+  const rows = extractRows(payload);
+  return rows.map(normalizeAdminUser).filter((user) => user.nome || user.email || user.id);
+}
+
+function extractRows(payload: unknown): unknown[] {
+  if (Array.isArray(payload)) return payload;
+  if (!payload || typeof payload !== 'object') return [];
+
+  const data = payload as Record<string, unknown>;
+  for (const key of ['dados', 'data', 'rows', 'itens', 'items', 'usuarios', 'users', 'result', 'resultado']) {
+    const value = data[key];
+    if (Array.isArray(value)) return value;
+  }
+
+  for (const value of Object.values(data)) {
+    if (Array.isArray(value)) return value;
+  }
+
+  return [];
+}
+
+function normalizeAdminUser(raw: unknown): AdminUser {
+  return {
+    id: String(pickField(raw, ['ID', 'id', 'ID_Usuario', 'id_usuario', 'IDUSUARIO', 'idusuario'], '') || '').trim(),
+    nome: String(pickField(raw, ['NOME', 'Nome', 'nome', 'USUARIO', 'usuario'], '') || '').trim(),
+    email: String(pickField(raw, ['EMAIL', 'Email', 'email', 'E-MAIL', 'e-mail'], '') || '').trim(),
+    acesso: String(pickField(raw, ['ACESSO', 'Acesso', 'acesso', 'PERFIL', 'perfil', 'ROLE', 'role'], 'editor') || '').trim(),
+    tipoUsuario: String(pickField(raw, ['TIPO_USUARIO', 'tipo_usuario', 'tipoUsuario', 'TIPO', 'tipo'], '') || '').trim(),
+    utec: String(pickField(raw, ['UTEC', 'utec', 'ID_UTEC', 'id_utec', 'UTEC_SCOPE', 'utecScope'], '') || '').trim(),
+    verTodasUtecs: Boolean(pickField(raw, ['VER_TODAS_UTECS', 'ver_todas_utecs', 'ver_todas_utec', 'verTodasUtecs'], false)),
+  };
+}
+
 function getActionError(response: ApiBaseResponse | unknown, fallback: string): string {
   if (!response || typeof response !== 'object') return fallback;
   const result = response as ApiBaseResponse;
@@ -338,7 +485,7 @@ function buildUtecOptions(clubes: Array<{ utec?: string; nomeUtec?: string }>, c
     const options = new Map<string, UtecOption>();
 
     clubes.forEach((clube) => {
-      const value = normalize(clube.utec);
+      const value = normalize(clube.utec || (clube as { id_utec?: string }).id_utec);
       if (!value) return;
 
       const nome = String(clube.nomeUtec || '').trim();
@@ -355,8 +502,8 @@ function buildUtecOptions(clubes: Array<{ utec?: string; nomeUtec?: string }>, c
   const scopedValue = normalize(utecScope);
   if (!scopedValue) return [];
 
-  const scopedClub = clubes.find((clube) => normalizeKey(clube.utec) === normalizeKey(scopedValue));
-  const value = scopedClub?.utec ? normalize(scopedClub.utec) : scopedValue;
+  const scopedClub = clubes.find((clube) => normalizeKey(clube.utec || (clube as { id_utec?: string }).id_utec) === normalizeKey(scopedValue));
+  const value = scopedClub?.utec ? normalize(scopedClub.utec) : scopedClub && (scopedClub as { id_utec?: string }).id_utec ? normalize((scopedClub as { id_utec?: string }).id_utec) : scopedValue;
   const labelBase = scopedClub?.nomeUtec ? String(scopedClub.nomeUtec).trim() : 'UTEC sem nome';
 
   return [{ value, label: labelBase }];

@@ -73,6 +73,11 @@ export function toUpperText(value: unknown, fallback = ''): string {
   return text ? text.toUpperCase() : String(fallback || '').toUpperCase();
 }
 
+export function toUpperTextPreserveSpaces(value: unknown, fallback = ''): string {
+  const text = String(value ?? fallback);
+  return text ? text.toUpperCase() : String(fallback || '').toUpperCase();
+}
+
 export function statusKey(status: unknown): 'em_andamento' | 'concluido' | 'pendente' {
   const normalized = String(status || '').trim().toLowerCase().replace(/[\s-]+/g, '_');
   if (normalized === 'em_andamento' || normalized === 'em_andamento.') return 'em_andamento';
@@ -94,12 +99,12 @@ export function normalizeClube(raw: unknown): Clube {
   ) ?? 0;
 
   return {
-    id: normalizeId(pickField(raw, ['ID', 'id', 'ID_Clube', 'ID Clube', 'ID_CLUBE', 'IDCLUBE', 'id_clube', 'id clube', 'idclube', 'CODIGO', 'Código', 'COD_CLUBE', 'CODIGO_CLUBE', 'codigo', 'a'], '')),
+    id: normalizeId(pickField(raw, ['ID', 'id', 'ID_Clube', 'ID Clube', 'ID_CLUBE', 'IDCLUBE', 'id_clube', 'id clube', 'idclube', 'ID_clube', 'ID_clube', 'CODIGO', 'Código', 'COD_CLUBE', 'CODIGO_CLUBE', 'codigo', 'a'], '')),
     nome: toUpperText(pickField(raw, ['Nome', 'nome'], '-'), '-'),
     escola: toUpperText(pickField(raw, ['Escola', 'escola'], '-'), '-'),
-    utec: toUpperText(pickField(raw, ['ID_UTEC', 'id_utec', 'UTEC_ID', 'utec_id', 'UTEC', 'utec'], '-'), '-'),
-    nomeUtec: toUpperText(pickField(raw, ['NOME_UTEC', 'nome_utec', 'NOME UTEC', 'nome utec', 'nomeUtec'], ''), ''),
-    prof: toUpperText(pickField(raw, ['Prof', 'Professor', 'Professores', 'Professores(as)', 'Professor(es)', 'prof', 'professor(a)', 'professores(as)'], '-'), '-'),
+    utec: toUpperText(pickField(raw, ['ID_UTEC', 'id_utec', 'UTEC_ID', 'utec_id', 'UTEC', 'utec', 'id_utec'], '-'), '-'),
+    nomeUtec: toUpperText(pickField(raw, ['NOME_UTEC', 'nome_utec', 'NOME UTEC', 'nome utec', 'nomeUtec', 'nome_utec'], ''), ''),
+    prof: toUpperText(pickField(raw, ['Prof', 'Professor', 'Professores', 'Professores(as)', 'Professor(es)', 'prof', 'professor(a)', 'professor(a)', 'professores(as)'], '-'), '-'),
     estag: toUpperText(pickField(raw, ['Estag', 'Estagiario', 'Estagiário', 'Estagiarios', 'Estagiários', 'Estagiários(as)', 'estag', 'estagiario(a)', 'estagiário', 'estagiarios(as)'], '-'), '-'),
     dias: toUpperText(pickField(raw, ['Dias', 'dias'], '-'), '-'),
     horario: toUpperText(pickField(raw, ['Horario', 'Horário', 'horario'], '-'), '-'),
@@ -112,7 +117,7 @@ export function normalizeClube(raw: unknown): Clube {
 export function normalizeAluno(raw: unknown): Aluno {
   return {
     id: normalizeId(pickField(raw, ['ID_Aluno', 'ID Aluno', 'ID_ALUNO', 'IDALUNO', 'id_aluno', 'id aluno', 'idaluno', 'id', 'ID'], '')),
-    idClube: normalizeId(pickField(raw, ['ID_Clube', 'ID Clube', 'ID_CLUBE', 'IDCLUBE', 'CLUBE_ID', 'clube_id', 'id_clube', 'id clube', 'idclube'], '')),
+    idClube: normalizeId(pickField(raw, ['ID_Clube', 'ID Clube', 'ID_CLUBE', 'IDCLUBE', 'ID_clube', 'CLUBE_ID', 'clube_id', 'id_clube', 'id clube', 'idclube'], '')),
     matricula: toUpperText(pickField(raw, ['Matricula', 'Matrícula', 'MATRICULA', 'matricula', 'Nº Matricula', 'No Matricula', 'Numero Matricula'], ''), ''),
     nome: toUpperText(pickField(raw, ['Nome', 'nome', 'ALUNO', 'Aluno', 'NOME_ALUNO', 'NOME ALUNO', 'ALUNO_NOME', 'NOME DO ALUNO'], '-'), '-'),
     dataRegistro: toUpperText(pickField(raw, ['Data_Registro', 'Data Registro', 'DATA_REGISTRO', 'data_registro', 'Data de Registro'], ''), ''),
@@ -121,8 +126,8 @@ export function normalizeAluno(raw: unknown): Aluno {
 
 export function normalizeEncontro(raw: unknown): Encontro {
   return {
-    id: normalizeId(pickField(raw, ['ID_Encontro', 'ID Encontro', 'id', 'ID'], '')),
-    idClube: normalizeId(pickField(raw, ['ID_Clube', 'ID Clube', 'ID_CLUBE', 'IDCLUBE', 'id_clube', 'id clube', 'idclube'], '')),
+    id: normalizeId(pickField(raw, ['ID_Encontro', 'ID Encontro', 'ID_Encontro', 'id', 'ID'], '')),
+    idClube: normalizeId(pickField(raw, ['ID_Clube', 'ID Clube', 'ID_CLUBE', 'IDCLUBE', 'ID_clube', 'id_clube', 'id clube', 'idclube'], '')),
     modulo: toUpperText(pickField(raw, ['Modulo', 'Módulo', 'modulo', 'Modlulo'], ''), ''),
     assunto: toUpperText(pickField(raw, ['Assunto', 'assunto'], '-'), '-'),
     data: toUpperText(pickField(raw, ['Data', 'data'], ''), ''),

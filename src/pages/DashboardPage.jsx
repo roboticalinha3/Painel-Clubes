@@ -5,8 +5,11 @@ import { DashboardView } from '../components/DashboardView';
 export function DashboardPage({
   userName,
   allowCreateClub,
+  allowAdminTools = false,
   onLogout,
   onOpenNewClubModal,
+  onOpenAdminDeleteClubs,
+  onOpenAdminUsers,
   clubes,
   genderStats,
   loading,
@@ -74,10 +77,13 @@ export function DashboardPage({
         activeView="dashboard"
         userName={userName}
         allowCreateClub={allowCreateClub}
+        allowAdminTools={allowAdminTools}
         onLogout={onLogout}
         onOpenDashboard={() => navigate('/dashboard')}
         onOpenClubs={() => navigate('/clubes')}
         onOpenNewClub={onOpenNewClubModal}
+        onOpenAdminDeleteClubs={onOpenAdminDeleteClubs}
+        onOpenAdminUsers={onOpenAdminUsers}
       />
 
       <main className="app-main-pane dashboard-main-modern flex-1 flex flex-col min-h-0 overflow-visible lg:overflow-hidden relative bg-bgDashboard lg:h-screen">

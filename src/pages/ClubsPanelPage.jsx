@@ -2,12 +2,17 @@ import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AppSidebar } from '../components/AppSidebar';
 import { statusKey } from '../utils/clubes';
+import { ConfirmPasswordModal } from '../components/ui/ConfirmPasswordModal';
 
-export function ClubsPanelPage({ userName, allowCreateClub, onLogout, onOpenNewClubModal, clubes, loading, error }) {
+export function ClubsPanelPage({ userName, allowCreateClub, allowAdminTools = false, onLogout, onOpenNewClubModal, onOpenAdminDeleteClubs, onOpenAdminUsers, clubes, loading, error, onDeleteClub, onRefreshClubs }) {
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [quickFilter, setQuickFilter] = useState('all');
   const [searchField, setSearchField] = useState('all');
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [clubToDelete, setClubToDelete] = useState(null);
+  const [deleteSaving, setDeleteSaving] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
 
   const normalizedSearch = search.trim().toLowerCase();
 
@@ -30,10 +35,13 @@ export function ClubsPanelPage({ userName, allowCreateClub, onLogout, onOpenNewC
         activeView="clubs"
         userName={userName}
         allowCreateClub={allowCreateClub}
+        allowAdminTools={allowAdminTools}
         onLogout={onLogout}
         onOpenDashboard={() => navigate('/dashboard')}
         onOpenClubs={() => navigate('/clubes')}
         onOpenNewClub={onOpenNewClubModal}
+        onOpenAdminDeleteClubs={onOpenAdminDeleteClubs}
+        onOpenAdminUsers={onOpenAdminUsers}
       />
 
       <main className="app-main-pane dashboard-main-modern flex-1 flex flex-col min-h-0 overflow-visible lg:overflow-hidden relative bg-bgDashboard lg:h-screen">
@@ -100,9 +108,10 @@ export function ClubsPanelPage({ userName, allowCreateClub, onLogout, onOpenNewC
               )}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-5 ui-card-grid ui-card-grid--three" id="grid-clubes-react">
                 {filteredClubes.map((clube, index) => (
-                  <button
+                  <div
                     key={clube.id || `clube-${index}`}
-                    type="button"
+                    role="button"
+                    tabIndex={0}
                     onClick={() => {
                       const targetId = resolveClubId(clube, clubes);
                       if (!targetId) return;
@@ -126,14 +135,62 @@ export function ClubsPanelPage({ userName, allowCreateClub, onLogout, onOpenNewC
 
                     <div className="flex items-end justify-between mt-auto pt-4 border-t border-gray-50 ui-card-footer">
                       <span className="card-alunos-count text-cetecBlue font-black text-sm">{clube.alunos || 0} Alunos</span>
-                      <span className={`status-badge ${statusClass(clube.status)} ui-card-pill font-black text-xs px-3 py-1.5 rounded-lg flex items-center shrink-0 border`}>{statusText(clube.status)}</span>
+                      <div className="flex items-center gap-3">
+                        {allowAdminTools && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setDeleteError('');
+                              setClubToDelete(clube);
+                              setDeleteModalOpen(true);
+                            }}
+                            className="text-red-600 hover:text-red-800 bg-red-50 border border-red-100 px-3 py-2 rounded-lg font-black text-xs"
+                            aria-label={`Excluir ${clube.nome}`}
+                          >
+                            <span className="material-symbols-rounded">delete</span>
+                          </button>
+                        )}
+                        <span className={`status-badge ${statusClass(clube.status)} ui-card-pill font-black text-xs px-3 py-1.5 rounded-lg flex items-center shrink-0 border`}>{statusText(clube.status)}</span>
+                      </div>
                     </div>
-                  </button>
+                  </div>
                 ))}
               </div>
             </div>
           )}
         </div>
+        <ConfirmPasswordModal
+          open={deleteModalOpen}
+          title={`Excluir clube`}
+          message={`Deseja mesmo excluir o clube "${clubToDelete?.nome || ''}"? Esta ação é irreversível.`}
+          passwordLabel="Senha do usuário"
+          passwordPlaceholder="Digite sua senha para confirmar"
+          confirmLabel="Excluir"
+          saving={deleteSaving}
+          error={deleteError}
+          onClose={() => setDeleteModalOpen(false)}
+          onConfirm={async (password) => {
+            if (!onDeleteClub) return setDeleteError('Ação indisponível.');
+            setDeleteSaving(true);
+            setDeleteError('');
+            try {
+              const id = resolveClubId(clubToDelete, clubes) || clubToDelete?.id;
+              const payload = { acao: 'remover_clube', id_clube: id, senha: password };
+              const result = await onDeleteClub(payload);
+              if (result && result.sucesso) {
+                setDeleteModalOpen(false);
+                if (onRefreshClubs) await onRefreshClubs();
+                return;
+              }
+              setDeleteError((result && (result.erro || result.mensagem)) || 'Não foi possível excluir o clube.');
+            } catch (err) {
+              setDeleteError('Erro ao excluir o clube.');
+            } finally {
+              setDeleteSaving(false);
+            }
+          }}
+        />
       </main>
     </div>
   );
