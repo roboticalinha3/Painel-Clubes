@@ -25,7 +25,8 @@ export function ClubDetailPage({ userName, userRole, allowAdminTools = false, al
   const [encontroLoadingMap, setEncontroLoadingMap] = useState({});
   const [confirmRemoval, setConfirmRemoval] = useState(null);
   const [novoAluno, setNovoAluno] = useState({ matricula: '', nome: '' });
-  const [novoEncontro, setNovoEncontro] = useState({ modulo: 'lista-scratch', assunto: '', data: '' });
+  const [novoEncontro, setNovoEncontro] = useState({ modulo: '', assunto: '', detalhamento: '', frequencia: '', quantidadeAlunos: '', data: '' });
+  const [meetingSearch, setMeetingSearch] = useState('');
   const [showEstagModal, setShowEstagModal] = useState(false);
   const [novoEstag, setNovoEstag] = useState('');
 
@@ -38,22 +39,9 @@ export function ClubDetailPage({ userName, userRole, allowAdminTools = false, al
   const returnTo = location.state?.from || '/clubes';
   const encontros = useMemo(() => details?.encontros || [], [details]);
   const alunos = useMemo(() => details?.alunos || [], [details]);
-
-  const encontrosPorModulo = useMemo(() => {
-    const base = {
-      'lista-scratch': [],
-      'lista-ev3': [],
-      'lista-maker': [],
-      'lista-python': [],
-    };
-
-    encontros.forEach((enc) => {
-      const bucket = mapModulo(enc.modulo);
-      base[bucket].push(enc);
-    });
-
-    return base;
-  }, [encontros]);
+  const meetingSections = useMemo(() => getMeetingSections(club.categoria), [club.categoria]);
+  const encontrosFiltrados = useMemo(() => filterMeetings(encontros, meetingSearch, club), [encontros, meetingSearch, club]);
+  const encontrosPorModulo = useMemo(() => groupMeetingsByModulo(encontrosFiltrados, meetingSections), [encontrosFiltrados, meetingSections]);
 
   useEffect(() => {
     if (club?.id) {
@@ -121,6 +109,19 @@ export function ClubDetailPage({ userName, userRole, allowAdminTools = false, al
     }
   }
 
+  function openEncontroModal() {
+    setActionError('');
+    setNovoEncontro({
+      modulo: meetingSections[0]?.value || '',
+      assunto: '',
+      detalhamento: '',
+      frequencia: '',
+      quantidadeAlunos: String(alunos.length || 0),
+      data: '',
+    });
+    setShowEncontroModal(true);
+  }
+
   function handleAlunoMatriculaChange(value) {
     const sanitized = String(value || '').replace(/\D/g, '').slice(0, 10);
     setNovoAluno((curr) => ({ ...curr, matricula: sanitized }));
@@ -136,10 +137,13 @@ export function ClubDetailPage({ userName, userRole, allowAdminTools = false, al
         id_clube: club.id,
         modulo: novoEncontro.modulo,
         assunto: novoEncontro.assunto,
+        detalhamento: novoEncontro.detalhamento,
+        frequencia: normalizeDigits(novoEncontro.frequencia),
+        quantidade_alunos: normalizeDigits(novoEncontro.quantidadeAlunos),
         data: novoEncontro.data,
       });
       if (response?.sucesso) {
-        setNovoEncontro({ modulo: 'lista-scratch', assunto: '', data: '' });
+        setNovoEncontro({ modulo: meetingSections[0]?.value || '', assunto: '', detalhamento: '', frequencia: '', quantidadeAlunos: '', data: '' });
         setShowEncontroModal(false);
         await refreshDetails();
       } else {
@@ -350,7 +354,7 @@ export function ClubDetailPage({ userName, userRole, allowAdminTools = false, al
             <div className="ui-surface-card ui-surface-card--pad-lg mb-4 lg:mb-6 shrink-0">
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
                 <div className="flex flex-col gap-2 min-w-0 lg:col-span-4">
-                <h3 className="text-xl sm:text-2xl font-black text-gray-800 tracking-tight break-words">{club.nome}</h3>
+                <h3 className="text-xl sm:text-2xl font-black text-gray-800 tracking-tight wrap-break-word">{club.nome}</h3>
                 <select value={statusValue} disabled={savingStatus || !allowUpdateStatus} onChange={(event) => handleUpdateClubStatus(event.target.value)} className={statusSelectClass(statusValue, savingStatus || !allowUpdateStatus)}>
                   <option value="pendente">🟠 PENDENTE</option>
                   <option value="em_andamento">🔵 EM ANDAMENTO</option>
@@ -362,14 +366,14 @@ export function ClubDetailPage({ userName, userRole, allowAdminTools = false, al
                 <div className="lg:col-span-8 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 lg:gap-5">
                   <div className="flex flex-col border-t sm:border-t-0 sm:border-l border-gray-200 pt-3 sm:pt-0 sm:pl-6 min-w-0">
                     <span className="text-[10px] font-bold text-gray-400 uppercase mb-1">Localização</span>
-                    <span className="text-sm font-black text-gray-800 break-words">🏫 {club.escola}</span>
-                    <span className="text-xs font-bold text-cetecBlue mt-0.5 break-words">{club.utec}</span>
+                    <span className="text-sm font-black text-gray-800 wrap-break-word">🏫 {club.escola}</span>
+                    <span className="text-xs font-bold text-cetecBlue mt-0.5 wrap-break-word">{club.utec}</span>
                   </div>
                   <div className="flex flex-col border-t sm:border-t-0 sm:border-l border-gray-200 pt-3 sm:pt-0 sm:pl-6 min-w-0">
                     <span className="text-[10px] font-bold text-gray-400 uppercase mb-1">Equipe Responsável</span>
-                    <span className="text-sm font-black text-gray-800 break-words">👩‍🏫 Profª {club.prof}</span>
+                    <span className="text-sm font-black text-gray-800 wrap-break-word">👩‍🏫 Profª {club.prof}</span>
                     <div className="mt-0.5 flex flex-wrap items-center gap-2">
-                      <span className="text-xs font-bold text-purple-600 break-words">👨‍💻 {club.estag} (Estag)</span>
+                      <span className="text-xs font-bold text-purple-600 wrap-break-word">👨‍💻 {club.estag} (Estag)</span>
                       <button
                         type="button"
                         onClick={openEditEstagModal}
@@ -381,8 +385,8 @@ export function ClubDetailPage({ userName, userRole, allowAdminTools = false, al
                   </div>
                   <div className="flex flex-col border-t xl:border-t-0 xl:border-l border-gray-200 pt-3 xl:pt-0 xl:pl-6 min-w-0">
                     <span className="text-[10px] font-bold text-gray-400 uppercase mb-1">Agenda</span>
-                    <span className="text-sm font-black text-gray-800 break-words">{club.dias}</span>
-                    <span className="text-xs font-bold text-cetecBlue mt-0.5 break-words">{club.horario}</span>
+                    <span className="text-sm font-black text-gray-800 wrap-break-word">{club.dias}</span>
+                    <span className="text-xs font-bold text-cetecBlue mt-0.5 wrap-break-word">{club.horario}</span>
                   </div>
                 </div>
               </div>
@@ -427,15 +431,27 @@ export function ClubDetailPage({ userName, userRole, allowAdminTools = false, al
               <div className="w-full xl:w-[66%] ui-surface-card ui-surface-card--pad flex flex-col h-full overflow-hidden relative">
                 <div className="ui-section-head shrink-0 border-b border-gray-50 pb-3 mb-4">
                   <h4 className="font-black text-lg text-gray-800">Cronograma da Trilha</h4>
-                  {allowCreateEncontro && <button type="button" onClick={() => setShowEncontroModal(true)} className="bg-gray-100 text-cetecGreen hover:bg-green-50 font-black w-8 h-8 rounded-lg text-lg leading-none transition flex items-center justify-center">+</button>}
+                  {allowCreateEncontro && <button type="button" onClick={openEncontroModal} className="bg-gray-100 text-cetecGreen hover:bg-green-50 font-black w-8 h-8 rounded-lg text-lg leading-none transition flex items-center justify-center">+</button>}
                 </div>
 
-                <div className="flex-1 overflow-y-auto no-scrollbar pr-1 pb-4">
+                <div className="flex-1 overflow-y-auto no-scrollbar pr-1 pb-4 space-y-4">
+                  
+
                   <div className="ui-card-grid ui-card-grid--single" style={{ gap: '1.25rem' }}>
-                    <ModuloSection title="1. SCRATCH" colorClass="bg-[#F3A712]" encontros={encontrosPorModulo['lista-scratch']} onToggleStatus={toggleEncontroStatus} onRemoveEncontro={requestRemoveEncontro} onCanRemove={allowDeleteEncontro} onCanToggleStatus={allowUpdateStatus} encontroLoadingMap={encontroLoadingMap} />
-                    <ModuloSection title="2. EV3" colorClass="bg-cetecBlue" encontros={encontrosPorModulo['lista-ev3']} onToggleStatus={toggleEncontroStatus} onRemoveEncontro={requestRemoveEncontro} onCanRemove={allowDeleteEncontro} onCanToggleStatus={allowUpdateStatus} encontroLoadingMap={encontroLoadingMap} />
-                    <ModuloSection title="3. MAKER / ARDUINO" colorClass="bg-cetecOrange" encontros={encontrosPorModulo['lista-maker']} onToggleStatus={toggleEncontroStatus} onRemoveEncontro={requestRemoveEncontro} onCanRemove={allowDeleteEncontro} onCanToggleStatus={allowUpdateStatus} encontroLoadingMap={encontroLoadingMap} />
-                    <ModuloSection title="4. PYTHON" colorClass="bg-cetecGreen" encontros={encontrosPorModulo['lista-python']} onToggleStatus={toggleEncontroStatus} onRemoveEncontro={requestRemoveEncontro} onCanRemove={allowDeleteEncontro} onCanToggleStatus={allowUpdateStatus} encontroLoadingMap={encontroLoadingMap} />
+                    {meetingSections.map((section, index) => (
+                      <ModuloSection
+                        key={section.value}
+                        title={`${index + 1}. ${section.label}`}
+                        colorClass={section.colorClass}
+                        encontros={encontrosPorModulo[section.value] || []}
+                        utecLabel={club.nomeUtec || club.utec}
+                        onToggleStatus={toggleEncontroStatus}
+                        onRemoveEncontro={requestRemoveEncontro}
+                        onCanRemove={allowDeleteEncontro}
+                        onCanToggleStatus={allowUpdateStatus}
+                        encontroLoadingMap={encontroLoadingMap}
+                      />
+                    ))}
                   </div>
                 </div>
               </div>
@@ -490,33 +506,72 @@ export function ClubDetailPage({ userName, userRole, allowAdminTools = false, al
           contentProps={{ onSubmit: handleSaveEncontro }}
           bodyClass="ui-modal-body space-y-4"
         >
-          <FormSelect
-            value={novoEncontro.modulo}
-            onChange={(event) => setNovoEncontro((curr) => ({ ...curr, modulo: event.target.value }))}
-            options={[
-              { label: 'SCRATCH', value: 'lista-scratch' },
-              { label: 'EV3', value: 'lista-ev3' },
-              { label: 'MAKER / ARDUINO', value: 'lista-maker' },
-              { label: 'PYTHON', value: 'lista-python' },
-            ]}
-            getOptionLabel={(option) => option.label}
-            getOptionKey={(option) => option.value}
-          />
-          <FormTextInput
-            placeholder="Ex: INTRODUÇÃO AO SCRATCH"
-            value={novoEncontro.assunto}
-            autoCapitalize="characters"
-            onChange={(event) => setNovoEncontro((curr) => ({ ...curr, assunto: toUpperTextPreserveSpaces(event.target.value, '') }))}
-            required
-          />
-          <FormTextInput
-            type="date"
-            placeholder="Data do encontro"
-            title="Selecione a data do encontro"
-            value={novoEncontro.data}
-            onChange={(event) => setNovoEncontro((curr) => ({ ...curr, data: event.target.value }))}
-            required
-          />
+          <div className="ui-card-tile ui-card-tile--row gap-3 items-center bg-linear-to-r from-cetecBlue/10 to-cetecGreen/10 border border-cetecBlue/10">
+            <div className="w-12 h-12 rounded-2xl bg-white/80 text-cetecBlue flex items-center justify-center shrink-0 shadow-sm">
+              <span className="material-symbols-rounded text-[26px]">event_note</span>
+            </div>
+            <div className="min-w-0">
+              <p className="font-black text-gray-800 text-sm leading-tight">Registro do encontro</p>
+              <p className="text-[11px] font-bold text-gray-500 leading-tight">Preencha o módulo, a frequência e o detalhamento do que foi trabalhado na aula.</p>
+            </div>
+          </div>
+          <label className="block">
+            <span className="text-xs font-black text-gray-500 uppercase tracking-wider mb-1 block">Módulo</span>
+            <FormSelect
+              value={novoEncontro.modulo}
+              onChange={(event) => setNovoEncontro((curr) => ({ ...curr, modulo: event.target.value }))}
+              options={meetingSections.map((section) => ({ label: section.label, value: section.value }))}
+              getOptionLabel={(option) => option.label}
+              getOptionKey={(option) => option.value}
+            />
+          </label>
+          <label className="block">
+            <span className="text-xs font-black text-gray-500 uppercase tracking-wider mb-1 block">Assunto</span>
+            <FormTextInput
+              placeholder="Ex: INTRODUÇÃO AO SCRATCH"
+              value={novoEncontro.assunto}
+              autoCapitalize="characters"
+              onChange={(event) => setNovoEncontro((curr) => ({ ...curr, assunto: toUpperTextPreserveSpaces(event.target.value, '') }))}
+              required
+            />
+          </label>
+          <label className="block">
+            <span className="text-xs font-black text-gray-500 uppercase tracking-wider mb-1 block">Detalhamento / Descrição</span>
+            <textarea
+              className="w-full min-h-[110px] px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-cetecGreen font-bold text-sm text-gray-700 resize-none"
+              placeholder="Ex: jogo, quiz, atividade desplugada, introdução ao conteúdo, revisão de aula (Metodologia Ativa , Cultura Maker)"
+              value={novoEncontro.detalhamento}
+              onChange={(event) => setNovoEncontro((curr) => ({ ...curr, detalhamento: toUpperTextPreserveSpaces(event.target.value, '') }))}
+              required
+            />
+          </label>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <label className="block">
+              <span className="text-xs font-black text-gray-500 uppercase tracking-wider mb-1 block">Frequência</span>
+              <FormTextInput
+                type="number"
+                min="1"
+                step="1"
+                inputMode="numeric"
+                placeholder="Nº de alunos presentes"
+                title="Digite somente números"
+                value={novoEncontro.frequencia}
+                onChange={(event) => setNovoEncontro((curr) => ({ ...curr, frequencia: normalizeDigits(event.target.value) }))}
+                required
+              />
+            </label>
+            <label className="block">
+              <span className="text-xs font-black text-gray-500 uppercase tracking-wider mb-1 block">Data</span>
+              <FormTextInput
+                type="date"
+                placeholder="Data do encontro"
+                title="Selecione a data do encontro"
+                value={novoEncontro.data}
+                onChange={(event) => setNovoEncontro((curr) => ({ ...curr, data: event.target.value }))}
+                required
+              />
+            </label>
+          </div>
           <ModalActionRow
             onCancel={() => setShowEncontroModal(false)}
             submitLabel="Salvar Encontro"
@@ -584,7 +639,7 @@ export function ClubDetailPage({ userName, userRole, allowAdminTools = false, al
   );
 }
 
-function ModuloSection({ title, colorClass, encontros, onToggleStatus, onRemoveEncontro, onCanRemove, onCanToggleStatus, encontroLoadingMap }) {
+function ModuloSection({ title, colorClass, encontros, utecLabel, onToggleStatus, onRemoveEncontro, onCanRemove, onCanToggleStatus, encontroLoadingMap }) {
   return (
     <details className="ui-surface-card group shadow-sm h-fit">
       <summary className={`font-black text-white p-3.5 text-sm cursor-pointer hover:opacity-90 transition rounded-t-2xl group-open:rounded-b-none rounded-b-2xl flex justify-between items-center outline-none ${colorClass}`}>
@@ -594,9 +649,14 @@ function ModuloSection({ title, colorClass, encontros, onToggleStatus, onRemoveE
       <div className="p-3 border-t-0 space-y-3 rounded-b-2xl flex flex-col">
         {encontros.length === 0 && <p className="text-xs font-bold text-gray-400">Nenhum encontro neste módulo.</p>}
         {encontros.map((enc, index) => (
-          <div key={enc.id || `${enc.assunto}-${enc.data}`.trim() || `encontro-${index}`} className="item-encontro ui-card-tile ui-card-tile--row justify-between animate-[fadeIn_0.3s_ease-in-out]">
-            <div className="flex-1">
+          <div key={enc.id || `${enc.assunto}-${enc.data}`.trim() || `encontro-${index}`} className="item-encontro ui-card-tile ui-card-tile--row justify-between animate-[fadeIn_0.3s_ease-in-out] gap-3">
+            <div className="flex-1 min-w-0">
               <p className="font-black text-gray-800 text-sm leading-tight pr-2">{enc.assunto}</p>
+              {enc.detalhamento && <p className="text-xs text-gray-600 font-semibold leading-relaxed pr-2 mt-1 wrap-break-word">{enc.detalhamento}</p>}
+              <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                {enc.quantidadeAlunos && <span className="text-[10px] font-black uppercase tracking-wide bg-cetecBlue/10 text-cetecBlue border border-cetecBlue/15 px-2 py-1 rounded-md">Inscritos {enc.quantidadeAlunos} alunos</span>}
+                {enc.frequencia && <span className="text-[10px] font-black uppercase tracking-wide bg-cetecGreen/30 text-green-800 border border-cetecGreen/15 px-2 py-1 rounded-md">Frequência do dia {enc.frequencia} alunos</span>}
+              </div>
               <span className="text-xs text-gray-500 font-bold bg-gray-100 px-2 py-1 rounded-md mt-1.5 inline-flex items-center gap-1">
                 <span className="material-symbols-rounded text-[14px]">calendar_month</span>
                 {formatDateBR(enc.data)}
@@ -637,14 +697,65 @@ function statusValueToBackend(statusValue) {
   return 'PENDENTE';
 }
 
-function mapModulo(rawModulo) {
-  const modulo = String(rawModulo || '').toLowerCase();
-  if (modulo.includes('scratch')) return 'lista-scratch';
-  if (modulo.includes('ev3')) return 'lista-ev3';
-  if (modulo.includes('maker') || modulo.includes('arduino')) return 'lista-maker';
-  if (modulo.includes('python')) return 'lista-python';
-  if (['lista-scratch', 'lista-ev3', 'lista-maker', 'lista-python'].includes(modulo)) return modulo;
-  return 'lista-scratch';
+function getMeetingSections(categoria) {
+  const isInitial = String(categoria || '').toLowerCase().includes('inicia');
+  if (isInitial) {
+    return [
+      { value: 'lista-scratchjr', label: 'SCRATCH JR.', colorClass: 'bg-[#F3A712]' },
+      { value: 'lista-WeDo', label: 'WeDo', colorClass: 'bg-cetecBlue' },
+    ];
+  }
+
+  return [
+    { value: 'lista-scratch', label: 'SCRATCH', colorClass: 'bg-[#F3A712]' },
+    { value: 'lista-ev3', label: 'EV3', colorClass: 'bg-cetecBlue' },
+    { value: 'lista-maker', label: 'MAKER / ARDUINO', colorClass: 'bg-cetecOrange' },
+    { value: 'lista-python', label: 'PYTHON', colorClass: 'bg-cetecGreen' },
+  ];
+}
+
+function groupMeetingsByModulo(encontros, meetingSections) {
+  const base = meetingSections.reduce((acc, section) => {
+    acc[section.value] = [];
+    return acc;
+  }, {});
+
+  const defaultKey = meetingSections[0]?.value || 'lista-scratch';
+  encontros.forEach((enc) => {
+    const bucket = resolveMeetingModulo(enc.modulo, meetingSections) || defaultKey;
+    if (!base[bucket]) base[bucket] = [];
+    base[bucket].push(enc);
+  });
+
+  return base;
+}
+
+function resolveMeetingModulo(rawModulo, meetingSections) {
+  const modulo = String(rawModulo || '').trim().toLowerCase();
+  if (!modulo) return '';
+
+  const sectionMap = {
+    'lista-scratchjr': ['scratch jr', 'scratchjr', 'scratch-jr', 'scratch jovem', 'scratch jr.'],
+    'lista-WeDo': ['WeDo'],
+    'lista-scratch': ['scratch', 'lista-scratch'],
+    'lista-ev3': ['ev3', 'lista-ev3'],
+    'lista-maker': ['maker', 'arduino', 'lista-maker'],
+    'lista-python': ['python', 'lista-python'],
+  };
+
+  for (const section of meetingSections) {
+    const aliases = sectionMap[section.value] || [];
+    if (aliases.some((alias) => modulo.includes(alias))) return section.value;
+    if (modulo === section.value) return section.value;
+    if (String(section.label || '').trim().toLowerCase() === modulo) return section.value;
+  }
+
+  for (const [key, aliases] of Object.entries(sectionMap)) {
+    if (!meetingSections.some((section) => section.value === key)) continue;
+    if (aliases.some((alias) => modulo.includes(alias))) return key;
+  }
+
+  return meetingSections[0]?.value || '';
 }
 
 function normalizeCategoriaLabel(categoria) {
@@ -659,6 +770,44 @@ function categoriaBadgeClass(categoria) {
   if (current.includes('mist')) return 'bg-blue-100 text-blue-700 border-blue-200';
   if (current.includes('fina')) return 'bg-green-100 text-green-700 border-green-200';
   return 'bg-sky-100 text-sky-700 border-sky-200';
+}
+
+function filterMeetings(encontros, term, club) {
+  const query = normalizeSearchText(term);
+  if (!query) return encontros;
+
+  const clubText = [club?.utec, club?.nomeUtec, club?.nome, club?.escola].map(normalizeSearchText).filter(Boolean).join(' ');
+
+  return encontros.filter((enc) => {
+    const searchText = [
+      enc.id,
+      enc.idClube,
+      enc.modulo,
+      enc.assunto,
+      enc.detalhamento,
+      enc.data,
+      enc.status,
+      enc.frequencia,
+      enc.quantidadeAlunos,
+      clubText,
+    ].map(normalizeSearchText).join(' ');
+
+    return searchText.includes(query);
+  });
+}
+
+function normalizeDigits(value) {
+  return String(value || '').replace(/\D/g, '');
+}
+
+function normalizeSearchText(value) {
+  return String(value || '')
+    .trim()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
 }
 
 function statusSelectClass(status, disabled) {

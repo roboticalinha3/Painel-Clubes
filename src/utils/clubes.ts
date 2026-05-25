@@ -28,8 +28,11 @@ export interface Encontro {
   idClube: string;
   modulo: string;
   assunto: string;
+  detalhamento: string;
   data: string;
   status: string;
+  frequencia: string;
+  quantidadeAlunos: string;
 }
 
 function asRecord(value: unknown): RawRecord {
@@ -130,8 +133,11 @@ export function normalizeEncontro(raw: unknown): Encontro {
     idClube: normalizeId(pickField(raw, ['ID_Clube', 'ID Clube', 'ID_CLUBE', 'IDCLUBE', 'ID_clube', 'id_clube', 'id clube', 'idclube'], '')),
     modulo: toUpperText(pickField(raw, ['Modulo', 'Módulo', 'modulo', 'Modlulo'], ''), ''),
     assunto: toUpperText(pickField(raw, ['Assunto', 'assunto'], '-'), '-'),
+    detalhamento: toUpperTextPreserveSpaces(pickField(raw, ['Detalhamento', 'detalhamento', 'Descrição', 'Descricao', 'descricao', 'Descrição do encontro', 'descricao do encontro'], ''), ''),
     data: toUpperText(pickField(raw, ['Data', 'data'], ''), ''),
     status: toUpperText(pickField(raw, ['Status', 'status'], 'A FAZER'), 'A FAZER'),
+    frequencia: String(pickField(raw, ['frequência', 'Frequência', 'frequencia', 'Frequencia'], '') || '').trim(),
+    quantidadeAlunos: String(pickField(raw, ['Quantidade de Alunos', 'quantidade de alunos', 'quantidade_alunos', 'quantidadeAlunos', 'Qtd Alunos', 'QTD_ALUNOS'], '') || '').trim(),
   };
 }
 

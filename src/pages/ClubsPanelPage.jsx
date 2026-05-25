@@ -65,18 +65,6 @@ export function ClubsPanelPage({ userName, allowCreateClub, allowAdminTools = fa
           <div className="clubes-toolbar-row mt-4">
             <div className="dashboard-search-pill clubes-search-inline">
               <span className="material-symbols-rounded text-[16px]">search</span>
-              <select
-                value={searchField}
-                onChange={(event) => setSearchField(event.target.value)}
-                className="clubes-search-select"
-                aria-label="Campo de pesquisa"
-              >
-                <option value="all">Todos os campos</option>
-                <option value="nome">Nome do clube</option>
-                <option value="escola">Escola</option>
-                <option value="estag">Estagiário</option>
-                <option value="prof">Professor</option>
-              </select>
               <input
                 type="text"
                 value={search}
@@ -211,7 +199,7 @@ function searchPlaceholder(field) {
   if (field === 'escola') return 'Pesquisar por escola';
   if (field === 'estag') return 'Pesquisar por estagiário';
   if (field === 'prof') return 'Pesquisar por professor';
-  return 'Pesquisar clube, escola, estagiário ou professor';
+  return 'Pesquisar utec, clube, escola, estagiário ou professor';
 }
 
 function matchQuickFilter(filter, status, categoria) {
