@@ -484,7 +484,7 @@ export function ClubDetailPage({ userName, userRole, allowAdminTools = false, al
             placeholder="Ex: ANA SOUZA"
             value={novoAluno.nome}
             autoCapitalize="characters"
-            onChange={(event) => setNovoAluno((curr) => ({ ...curr, nome: toUpperText(event.target.value, '') }))}
+            onChange={(event) => setNovoAluno((curr) => ({ ...curr, nome: toUpperTextPreserveSpaces(event.target.value, '') }))}
             required
           />
           <ModalActionRow
