@@ -708,7 +708,7 @@ function getMeetingSections(categoria) {
 
   return [
     { value: 'lista-scratch', label: 'SCRATCH', colorClass: 'bg-[#F3A712]' },
-    { value: 'lista-ev3', label: 'EV3', colorClass: 'bg-cetecBlue' },
+    { value: 'lista-ev3', label: 'EV3 / SPYKE', colorClass: 'bg-cetecBlue' },
     { value: 'lista-maker', label: 'MAKER / ARDUINO', colorClass: 'bg-cetecOrange' },
     { value: 'lista-python', label: 'PYTHON', colorClass: 'bg-cetecGreen' },
   ];
@@ -736,7 +736,7 @@ function resolveMeetingModulo(rawModulo, meetingSections) {
 
   const sectionMap = {
     'lista-scratchjr': ['scratch jr', 'scratchjr', 'scratch-jr', 'scratch jovem', 'scratch jr.'],
-    'lista-WeDo': ['WeDo'],
+    'lista-WeDo': ['wedo', 'we-do', 'we do', 'lista-wedo'],
     'lista-scratch': ['scratch', 'lista-scratch'],
     'lista-ev3': ['ev3', 'lista-ev3'],
     'lista-maker': ['maker', 'arduino', 'lista-maker'],
