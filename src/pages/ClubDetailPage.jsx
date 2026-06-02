@@ -6,7 +6,7 @@ import { FormSelect } from '../components/ui/FormSelect';
 import { FormTextInput } from '../components/ui/FormTextInput';
 import { ModalActionRow } from '../components/ui/ModalActionRow';
 import { formatDateBR, statusKey, toUpperText, toUpperTextPreserveSpaces } from '../utils/clubes';
-import { canCreateAluno, canCreateEncontro, canDeleteAluno, canDeleteEncontro, canUpdateStatus } from '../utils/permissions';
+import { canCreateAluno, canCreateEncontro, canDeleteAluno, canDeleteEncontro, canUpdateStatus, canEditEncontro } from '../utils/permissions';
 
 export function ClubDetailPage({ userName, userRole, allowAdminTools = false, allowUsersTools = false, onLogout, onOpenNewClubModal, onOpenAdminDeleteClubs, onOpenAdminUsers, clubes, details, detailsLoading = false, detailsError, onLoadDetails, onRefresh, onSaveClub, onSaveAluno, onDeleteAluno, onSaveEncontro, onDeleteEncontro, onUpdateStatus }) {
   const { clubId } = useParams();
@@ -35,6 +35,7 @@ export function ClubDetailPage({ userName, userRole, allowAdminTools = false, al
   const allowCreateEncontro = canCreateEncontro(userRole);
   const allowDeleteAluno = canDeleteAluno(userRole);
   const allowDeleteEncontro = canDeleteEncontro(userRole);
+  const allowEditEncontro = canEditEncontro(userRole);
   const allowUpdateStatus = canUpdateStatus(userRole);
   const returnTo = location.state?.from || '/clubes';
   const encontros = useMemo(() => details?.encontros || [], [details]);
@@ -122,6 +123,54 @@ export function ClubDetailPage({ userName, userRole, allowAdminTools = false, al
     setShowEncontroModal(true);
   }
 
+  function openEditEncontroModal(enc) {
+    setActionError('');
+    const moduloValue = resolveMeetingModulo(enc.modulo, meetingSections) || enc.modulo || meetingSections[0]?.value || '';
+    // Normalize date from multiple possible shapes: 'YYYY-MM-DD', 'DD/MM/YYYY', '2026-05-29T13:42:37.878Z'
+    const rawDate = enc.data || enc.Data || enc.DATA || enc['Data'] || enc['DATA'] || '';
+    let dataValue = '';
+    function normalizeDateString(s) {
+      const t = String(s || '').trim();
+      if (!t) return '';
+      if (t.includes('T')) return t.split('T')[0];
+      if (t.includes('/')) {
+        const parts = t.split('/').map((p) => p.padStart(2, '0'));
+        if (parts.length === 3) {
+          const [d, m, y] = parts;
+          return `${y}-${m}-${d}`;
+        }
+      }
+      const match = t.match(/(\d{4}-\d{2}-\d{2})/);
+      return match ? match[1] : t;
+    }
+
+    if (rawDate) dataValue = normalizeDateString(rawDate);
+    // If still empty, try to discover any date-like substring in the whole record (defensive)
+    if (!dataValue) {
+      try {
+        const text = Object.values(enc || {}).join(' ');
+        const isoMatch = String(text).match(/(\d{4}-\d{2}-\d{2})/);
+        if (isoMatch) dataValue = isoMatch[1];
+        else {
+          const dmyMatch = String(text).match(/(\d{1,2}\/\d{1,2}\/\d{4})/);
+          if (dmyMatch) dataValue = normalizeDateString(dmyMatch[1]);
+        }
+      } catch (e) {
+        // ignore
+      }
+    }
+    setNovoEncontro({
+      id: enc.id,
+      modulo: moduloValue,
+      assunto: enc.assunto || '',
+      detalhamento: enc.detalhamento || enc.Detalhamento || '',
+      frequencia: String(enc.frequencia || enc['Frequência'] || ''),
+      quantidadeAlunos: String(enc.quantidadeAlunos || enc['Quantidade de Alunos'] || ''),
+      data: dataValue,
+    });
+    setShowEncontroModal(true);
+  }
+
   function handleAlunoMatriculaChange(value) {
     const sanitized = String(value || '').replace(/\D/g, '').slice(0, 10);
     setNovoAluno((curr) => ({ ...curr, matricula: sanitized }));
@@ -132,7 +181,7 @@ export function ClubDetailPage({ userName, userRole, allowAdminTools = false, al
     setSavingEncontro(true);
     setActionError('');
     try {
-      const response = await onSaveEncontro({
+      const payload = {
         acao: 'salvar_encontro',
         id_clube: club.id,
         modulo: novoEncontro.modulo,
@@ -141,7 +190,9 @@ export function ClubDetailPage({ userName, userRole, allowAdminTools = false, al
         frequencia: normalizeDigits(novoEncontro.frequencia),
         quantidade_alunos: normalizeDigits(novoEncontro.quantidadeAlunos),
         data: novoEncontro.data,
-      });
+      };
+      if (novoEncontro.id) payload.id_encontro = novoEncontro.id;
+      const response = await onSaveEncontro(payload);
       if (response?.sucesso) {
         setNovoEncontro({ modulo: meetingSections[0]?.value || '', assunto: '', detalhamento: '', frequencia: '', quantidadeAlunos: '', data: '' });
         setShowEncontroModal(false);
@@ -447,7 +498,9 @@ export function ClubDetailPage({ userName, userRole, allowAdminTools = false, al
                         utecLabel={club.nomeUtec || club.utec}
                         onToggleStatus={toggleEncontroStatus}
                         onRemoveEncontro={requestRemoveEncontro}
+                        onEditEncontro={openEditEncontroModal}
                         onCanRemove={allowDeleteEncontro}
+                        onCanEdit={allowEditEncontro}
                         onCanToggleStatus={allowUpdateStatus}
                         encontroLoadingMap={encontroLoadingMap}
                       />
@@ -639,7 +692,7 @@ export function ClubDetailPage({ userName, userRole, allowAdminTools = false, al
   );
 }
 
-function ModuloSection({ title, colorClass, encontros, utecLabel, onToggleStatus, onRemoveEncontro, onCanRemove, onCanToggleStatus, encontroLoadingMap }) {
+function ModuloSection({ title, colorClass, encontros, utecLabel, onToggleStatus, onRemoveEncontro, onEditEncontro, onCanRemove, onCanEdit, onCanToggleStatus, encontroLoadingMap }) {
   return (
     <details className="ui-surface-card group shadow-sm h-fit">
       <summary className={`font-black text-white p-3.5 text-sm cursor-pointer hover:opacity-90 transition rounded-t-2xl group-open:rounded-b-none rounded-b-2xl flex justify-between items-center outline-none ${colorClass}`}>
@@ -671,6 +724,16 @@ function ModuloSection({ title, colorClass, encontros, utecLabel, onToggleStatus
                   className={`btn-3d status-btn font-black text-[10px] px-2.5 py-1.5 rounded-md border-b-[3px] transition-colors min-w-[64px] ${encontroLoadingMap?.[enc.id] ? 'bg-gray-400 text-white border-gray-600 cursor-wait' : String(enc.status || '').toUpperCase() === 'FEITO' ? 'bg-green-500 text-white border-green-700' : 'bg-red-500 text-white border-red-700'}`}
                 >
                   {encontroLoadingMap?.[enc.id] ? '...' : String(enc.status || '').toUpperCase() === 'FEITO' ? 'FEITO' : 'A FAZER'}
+                </button>
+              )}
+              {onCanEdit && (
+                <button
+                  type="button"
+                  onClick={() => onEditEncontro && onEditEncontro(enc)}
+                  disabled={encontroLoadingMap?.[enc.id]}
+                  className={`btn-3d font-black text-[10px] px-2.5 py-1.5 rounded-md border-b-[3px] transition-colors min-w-[64px] ${encontroLoadingMap?.[enc.id] ? 'bg-gray-400 text-white border-gray-600 cursor-wait' : 'bg-yellow-600 text-white border-yellow-800 hover:bg-yellow-500'}`}
+                >
+                  EDITAR
                 </button>
               )}
               {onCanRemove && (

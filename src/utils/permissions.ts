@@ -72,7 +72,13 @@ export function canDeleteAluno(value: unknown): boolean {
 }
 
 export function canDeleteEncontro(value: unknown): boolean {
-  return normalizeAccessLevel(value) === ACCESS_LEVELS.ADMIN;
+  const level = normalizeAccessLevel(value);
+  return level === ACCESS_LEVELS.ADMIN || level === ACCESS_LEVELS.EDITOR;
+}
+
+export function canEditEncontro(value: unknown): boolean {
+  const level = normalizeAccessLevel(value);
+  return level === ACCESS_LEVELS.ADMIN || level === ACCESS_LEVELS.EDITOR;
 }
 
 export function canDeleteClub(value: unknown): boolean {
