@@ -175,7 +175,7 @@ function transformApiResponse(value: unknown, action = ''): unknown {
 
 function isIdField(key: string): boolean {
   const normalized = String(key || '').toLowerCase();
-  return normalized === 'id' || normalized.startsWith('id_') || normalized === 'idclube' || normalized === 'idencontro' || normalized === 'idaluno';
+  return normalized === 'id' || normalized.startsWith('id_') || normalized === 'idclube' || normalized === 'idencontro' || normalized === 'idaluno' || normalized === 'encontrosfeitos';
 }
 
 function transformDeep(value: unknown, transformFn: (key: string, currentValue: unknown) => unknown, key = ''): unknown {

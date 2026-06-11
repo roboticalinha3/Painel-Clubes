@@ -8,6 +8,7 @@ export function ClubsPanelPage({ userName, allowCreateClub, allowAdminTools = fa
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [quickFilter, setQuickFilter] = useState('all');
+  const [encontrosFilter, setEncontrosFilter] = useState('all');
   const [searchField, setSearchField] = useState('all');
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [clubToDelete, setClubToDelete] = useState(null);
@@ -23,11 +24,16 @@ export function ClubsPanelPage({ userName, allowCreateClub, allowAdminTools = fa
       const inQuickFilter = matchQuickFilter(quickFilter, key, categoria);
       if (!inQuickFilter) return false;
 
-      if (!normalizedSearch) return true;
+      const encontros = Number(clube.encontrosFeitos || 0);
+      if (encontrosFilter === 'zero' && encontros !== 0) return false;
+      if (encontrosFilter === '1_5' && (encontros < 1 || encontros > 5)) return false;
+      if (encontrosFilter === '6_10' && (encontros < 6 || encontros > 10)) return false;
+      if (encontrosFilter === '11_plus' && encontros < 11) return false;
 
+      if (!normalizedSearch) return true;
       return matchSearchField(clube, searchField, normalizedSearch);
     });
-  }, [clubes, normalizedSearch, quickFilter, searchField]);
+  }, [clubes, normalizedSearch, quickFilter, searchField, encontrosFilter]);
 
   return (
     <div id="main-app" className="app-shell flex flex-col lg:flex-row min-h-screen w-full overflow-x-hidden lg:overflow-hidden lg:h-screen">
@@ -62,19 +68,39 @@ export function ClubsPanelPage({ userName, allowCreateClub, allowAdminTools = fa
             )}
           </div>
 
-          <div className="clubes-toolbar-row mt-4">
-            <div className="dashboard-search-pill clubes-search-inline">
-              <span className="material-symbols-rounded text-[16px]">search</span>
-              <input
-                type="text"
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-                placeholder={searchPlaceholder(searchField)}
-                aria-label="Pesquisar clubes"
-              />
+          {/* NOVA ÁREA DE FILTROS - COMPACTA E ALINHADA */}
+          <div className="mt-5 flex flex-col gap-2.5">
+            <div className="flex flex-col md:flex-row gap-3 w-full">
+              {/* Barra de Pesquisa Padronizada */}
+              <div className="flex-1 flex items-center bg-white rounded-xl border border-gray-200 px-3 h-[42px] shadow-sm focus-within:border-cetecGreen focus-within:ring-2 focus-within:ring-cetecGreen/20 transition-all">
+                <span className="material-symbols-rounded text-[18px] text-gray-400 mr-2 shrink-0">search</span>
+                <input
+                  type="text"
+                  value={search}
+                  onChange={(event) => setSearch(event.target.value)}
+                  placeholder={searchPlaceholder(searchField)}
+                  className="w-full bg-transparent outline-none text-sm font-bold text-gray-700 placeholder:text-gray-400 placeholder:font-semibold h-full"
+                  aria-label="Pesquisar clubes"
+                />
+              </div>
+              
+              {/* Select de Progresso Padronizado */}
+              <select
+                value={encontrosFilter}
+                onChange={(e) => setEncontrosFilter(e.target.value)}
+                className="h-[42px] font-black text-xs px-4 rounded-xl border border-gray-200 text-gray-600 outline-none bg-white shadow-sm cursor-pointer w-full md:w-auto hover:border-cetecGreen transition-colors shrink-0"
+                title="Filtrar por quantidade de encontros"
+              >
+                <option value="all">Progresso: Todos</option>
+                <option value="zero">0 Encontros</option>
+                <option value="1_5">1 a 5 Encontros</option>
+                <option value="6_10">6 a 10 Encontros</option>
+                <option value="11_plus">11+ Encontros</option>
+              </select>
             </div>
 
-            <div className="dashboard-filter-bar clubes-filter-inline">
+            {/* Chips Alinhados à Esquerda */}
+            <div className="flex flex-wrap gap-2 w-full justify-start items-center">
               <FilterChip label="Todos" icon="dashboard" active={quickFilter === 'all'} onClick={() => setQuickFilter('all')} />
               <FilterChip label="Pendentes" icon="hourglass_top" active={quickFilter === 'pendente'} onClick={() => setQuickFilter('pendente')} />
               <FilterChip label="Andamento" icon="progress_activity" active={quickFilter === 'em_andamento'} onClick={() => setQuickFilter('em_andamento')} />
@@ -123,7 +149,11 @@ export function ClubsPanelPage({ userName, allowCreateClub, allowAdminTools = fa
                     </div>
 
                     <div className="flex items-end justify-between mt-auto pt-4 border-t border-gray-50 ui-card-footer">
-                      <span className="card-alunos-count text-cetecBlue font-black text-sm">{clube.alunos || 0} Alunos</span>
+                      <div className="flex flex-col">
+                        <span className="card-alunos-count text-cetecBlue font-black text-sm leading-none">{clube.alunos || 0} Alunos</span>
+                        <span className="text-cetecGreen font-extrabold text-[11px] mt-1.5 uppercase tracking-tight">{clube.encontrosFeitos || 0} Encontros</span>
+                      </div>
+                      
                       <div className="flex items-center gap-3">
                         {allowAdminTools && (
                           <button

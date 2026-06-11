@@ -11,7 +11,6 @@ import {
   Tooltip,
 } from 'chart.js';
 import { Bar, Doughnut } from 'react-chartjs-2';
-import { statusKey } from '../utils/clubes';
 
 ChartJS.register(
   ArcElement,
@@ -30,6 +29,8 @@ const STATIC_GENDER_DISTRIBUTION = [52, 48];
 const CHART_ANIMATION = { duration: 850, easing: 'easeOutQuart' };
 
 export function DashboardView({ clubes, genderStats, onSelectClub }) {
+  console.log("🛠️ DADOS RECEBIDOS NO DASHBOARD:", clubes);
+
   const analytics = buildAnalytics(clubes, clubes);
   const byCategoria = buildCategoria(clubes);
   const byStatus = buildStatusDistribuicao(clubes);
@@ -438,7 +439,8 @@ function buildProgressoEncontros(clubes) {
 
   const counts = faixas.map((faixa) =>
     clubes.filter((clube) => {
-      const encontros = sanitizeNumber(clube.encontrosFeitos);
+const valorBruto = clube.encontrosFeitos ?? clube.encontrosfeitos ?? clube.ENCONTROSFEITOS ?? 0;
+      const encontros = parseInt(valorBruto, 10) || 0;
       return encontros >= faixa.min && encontros <= faixa.max;
     }).length,
   );
@@ -452,7 +454,16 @@ function buildProgressoEncontros(clubes) {
 function buildStatusDistribuicao(clubes) {
   const base = { pendente: 0, em_andamento: 0, concluido: 0 };
   for (const clube of clubes) {
-    const key = statusKey(clube.status);
+    // Lógica direta que não precisa do ficheiro utils:
+    const statusStr = String(clube.status || '').toLowerCase();
+    let key = 'pendente';
+    
+    if (statusStr.includes('andamento') || statusStr === 'em andamento') {
+      key = 'em_andamento';
+    } else if (statusStr.includes('conclui') || statusStr.includes('concluí') || statusStr === 'feito') {
+      key = 'concluido';
+    }
+
     if (base[key] !== undefined) base[key] += 1;
   }
 

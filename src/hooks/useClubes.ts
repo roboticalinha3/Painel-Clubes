@@ -9,6 +9,7 @@ type RawRecord = Record<string, unknown>;
 
 export interface ClubeComAlunos extends Clube {
   alunos: number;
+  encontrosFeitos?: number; // <-- ADICIONADO PARA O TYPESCRIPT RECONHECER
 }
 
 export interface ClubDetails {
@@ -77,7 +78,16 @@ export function useClubes(options: UseClubesOptions = {}): UseClubesResult {
         apiGet<unknown>({ acao: 'listar_alunos', _t: Date.now() }),
         apiGet<unknown>({ acao: 'listar_alunos_detalhes', _t: Date.now() }),
       ]);
-      const clubesNorm = Array.isArray(clubesRaw) ? clubesRaw.map(normalizeClube) : [];
+      
+      // --- MODIFICAÇÃO CHAVE: INJETANDO O ENCONTROS FEITOS ---
+      const clubesNorm = Array.isArray(clubesRaw) ? clubesRaw.map((raw: any) => {
+        const clubeNormalizado = normalizeClube(raw);
+        // Força a injeção da propriedade que o normalizeClube tentou apagar
+        (clubeNormalizado as any).encontrosFeitos = Number(raw?.encontrosFeitos ?? raw?.encontrosfeitos ?? raw?.ENCONTROSFEITOS ?? 0);
+        return clubeNormalizado;
+      }) : [];
+      // -------------------------------------------------------
+
       const clubesVisiveis = filterClubesByUtec(clubesNorm, utecScope);
       const alunosRows = extractRows(alunosGlobalRaw);
       const alunosDetalhesRows = extractRows(alunosDetalhesRaw);
@@ -174,14 +184,12 @@ function extractRows(payload: unknown): unknown[] {
   if (Array.isArray(data.rows)) return data.rows;
   if (Array.isArray(data.itens)) return data.itens;
 
-  // Fallback tolerante para respostas com chaves em maiusculo/misto (ex.: DADOS, DATA).
   const knownKeys = new Set(['dados', 'data', 'rows', 'itens', 'items', 'resultado', 'result']);
   for (const [key, value] of Object.entries(data)) {
     if (!knownKeys.has(String(key || '').trim().toLowerCase())) continue;
     if (Array.isArray(value)) return value;
   }
 
-  // Ultimo fallback: se houver apenas uma propriedade array, usa ela.
   const firstArray = findFirstArrayValue(data);
   if (Array.isArray(firstArray)) return firstArray;
 
