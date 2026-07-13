@@ -84,7 +84,7 @@ export function toUpperTextPreserveSpaces(value: unknown, fallback = ''): string
 export function statusKey(status: unknown): 'em_andamento' | 'concluido' | 'pendente' {
   const normalized = String(status || '').trim().toLowerCase().replace(/[\s-]+/g, '_');
   if (normalized === 'em_andamento' || normalized === 'em_andamento.') return 'em_andamento';
-  if (normalized === 'concluido' || normalized === 'concluído') return 'concluido';
+  if (normalized === 'concluido' || normalized === 'concluído' || normalized === 'feito') return 'concluido';
   return 'pendente';
 }
 

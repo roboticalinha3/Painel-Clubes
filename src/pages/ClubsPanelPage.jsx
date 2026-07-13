@@ -9,7 +9,7 @@ export function ClubsPanelPage({ userName, allowCreateClub, allowAdminTools = fa
   const [search, setSearch] = useState('');
   const [quickFilter, setQuickFilter] = useState('all');
   const [encontrosFilter, setEncontrosFilter] = useState('all');
-  const [searchField, setSearchField] = useState('all');
+  const searchField = 'all';
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [clubToDelete, setClubToDelete] = useState(null);
   const [deleteSaving, setDeleteSaving] = useState(false);
@@ -203,7 +203,7 @@ export function ClubsPanelPage({ userName, allowCreateClub, allowAdminTools = fa
                 return;
               }
               setDeleteError((result && (result.erro || result.mensagem)) || 'Não foi possível excluir o clube.');
-            } catch (err) {
+            } catch {
               setDeleteError('Erro ao excluir o clube.');
             } finally {
               setDeleteSaving(false);

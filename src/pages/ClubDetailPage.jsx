@@ -5,7 +5,7 @@ import { BaseModal } from '../components/ui/BaseModal';
 import { FormSelect } from '../components/ui/FormSelect';
 import { FormTextInput } from '../components/ui/FormTextInput';
 import { ModalActionRow } from '../components/ui/ModalActionRow';
-import { formatDateBR, statusKey, toUpperText, toUpperTextPreserveSpaces } from '../utils/clubes';
+import { formatDateBR, statusKey, toUpperTextPreserveSpaces } from '../utils/clubes';
 import { canCreateAluno, canCreateEncontro, canDeleteAluno, canDeleteEncontro, canUpdateStatus, canEditEncontro } from '../utils/permissions';
 
 export function ClubDetailPage({ userName, userRole, allowAdminTools = false, allowUsersTools = false, onLogout, onOpenNewClubModal, onOpenAdminDeleteClubs, onOpenAdminUsers, clubes, details, detailsLoading = false, detailsError, onLoadDetails, onRefresh, onSaveClub, onSaveAluno, onDeleteAluno, onSaveEncontro, onDeleteEncontro, onUpdateStatus }) {
@@ -26,7 +26,7 @@ export function ClubDetailPage({ userName, userRole, allowAdminTools = false, al
   const [confirmRemoval, setConfirmRemoval] = useState(null);
   const [novoAluno, setNovoAluno] = useState({ matricula: '', nome: '' });
   const [novoEncontro, setNovoEncontro] = useState({ modulo: '', assunto: '', detalhamento: '', frequencia: '', quantidadeAlunos: '', data: '' });
-  const [meetingSearch, setMeetingSearch] = useState('');
+  const meetingSearch = '';
   const [showEstagModal, setShowEstagModal] = useState(false);
   const [novoEstag, setNovoEstag] = useState('');
 
@@ -155,7 +155,7 @@ export function ClubDetailPage({ userName, userRole, allowAdminTools = false, al
           const dmyMatch = String(text).match(/(\d{1,2}\/\d{1,2}\/\d{4})/);
           if (dmyMatch) dataValue = normalizeDateString(dmyMatch[1]);
         }
-      } catch (e) {
+      } catch {
         // ignore
       }
     }
@@ -495,7 +495,6 @@ export function ClubDetailPage({ userName, userRole, allowAdminTools = false, al
                         title={`${index + 1}. ${section.label}`}
                         colorClass={section.colorClass}
                         encontros={encontrosPorModulo[section.value] || []}
-                        utecLabel={club.nomeUtec || club.utec}
                         onToggleStatus={toggleEncontroStatus}
                         onRemoveEncontro={requestRemoveEncontro}
                         onEditEncontro={openEditEncontroModal}
@@ -692,7 +691,7 @@ export function ClubDetailPage({ userName, userRole, allowAdminTools = false, al
   );
 }
 
-function ModuloSection({ title, colorClass, encontros, utecLabel, onToggleStatus, onRemoveEncontro, onEditEncontro, onCanRemove, onCanEdit, onCanToggleStatus, encontroLoadingMap }) {
+function ModuloSection({ title, colorClass, encontros, onToggleStatus, onRemoveEncontro, onEditEncontro, onCanRemove, onCanEdit, onCanToggleStatus, encontroLoadingMap }) {
   return (
     <details className="ui-surface-card group shadow-sm h-fit">
       <summary className={`font-black text-white p-3.5 text-sm cursor-pointer hover:opacity-90 transition rounded-t-2xl group-open:rounded-b-none rounded-b-2xl flex justify-between items-center outline-none ${colorClass}`}>

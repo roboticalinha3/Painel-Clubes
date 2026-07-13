@@ -10,6 +10,8 @@ type RawRecord = Record<string, unknown>;
 export interface ClubeComAlunos extends Clube {
   alunos: number;
   encontrosFeitos?: number; // <-- ADICIONADO PARA O TYPESCRIPT RECONHECER
+  alunosM?: number;
+  alunosF?: number;
 }
 
 export interface ClubDetails {
@@ -105,7 +107,33 @@ export function useClubes(options: UseClubesOptions = {}): UseClubesResult {
         return acc;
       }, {});
 
-      const clubesComAlunos = buildClubesComAlunos(clubesVisiveis, alunosRows, clubIdByName);
+      const genderCountByClub = alunosDetalhesRows.reduce<Record<string, { M: number; F: number }>>((acc, row) => {
+        let clubId = '';
+        if (row && typeof row === 'object') {
+          const r = row as any;
+          clubId = normalizeIdRef(r.idClube ?? r.id_clube);
+        }
+
+        if (!clubId) {
+          const clubName = extractAlunoClubName(row);
+          clubId = normalizeTextRef(clubName) ? clubIdByName[normalizeTextRef(clubName)] || '' : '';
+        }
+
+        const normalizedClubId = normalizeIdRef(clubId);
+        if (!normalizedClubId) return acc;
+
+        if (!acc[normalizedClubId]) {
+          acc[normalizedClubId] = { M: 0, F: 0 };
+        }
+
+        const sexo = extractSexo(row);
+        if (sexo === 'M') acc[normalizedClubId].M += 1;
+        if (sexo === 'F') acc[normalizedClubId].F += 1;
+
+        return acc;
+      }, {});
+
+      const clubesComAlunos = buildClubesComAlunos(clubesVisiveis, alunosRows, clubIdByName, genderCountByClub);
       setClubes(clubesComAlunos);
       setGenderStats(buildGenderStats(alunosDetalhesRows, clubIdByName, clubeIdByVisibleId));
     } catch (err) {
@@ -210,8 +238,17 @@ function findFirstArrayValue(value: unknown): unknown[] | undefined {
 
 function buildGenderStats(rows: unknown[], clubIdByName: Record<string, string> = {}, allowedClubIds: Record<string, boolean> = {}): GenderStats {
   return rows.reduce<GenderStats>((acc, row) => {
-    const clubName = extractAlunoClubName(row);
-    const clubId = normalizeTextRef(clubName) ? clubIdByName[normalizeTextRef(clubName)] || '' : '';
+    let clubId = '';
+    if (row && typeof row === 'object') {
+      const r = row as any;
+      clubId = normalizeIdRef(r.idClube ?? r.id_clube);
+    }
+
+    if (!clubId) {
+      const clubName = extractAlunoClubName(row);
+      clubId = normalizeTextRef(clubName) ? clubIdByName[normalizeTextRef(clubName)] || '' : '';
+    }
+
     if (Object.keys(allowedClubIds).length > 0 && (!clubId || !allowedClubIds[normalizeIdRef(clubId)])) {
       return acc;
     }
@@ -223,7 +260,12 @@ function buildGenderStats(rows: unknown[], clubIdByName: Record<string, string> 
   }, { masculino: 0, feminino: 0 });
 }
 
-function buildClubesComAlunos(clubes: Clube[], alunosRows: unknown[], clubeIdByName: Record<string, string>): ClubeComAlunos[] {
+function buildClubesComAlunos(
+  clubes: Clube[],
+  alunosRows: unknown[],
+  clubeIdByName: Record<string, string>,
+  genderCountByClub?: Record<string, { M: number; F: number }>
+): ClubeComAlunos[] {
   if (!clubes.length) return [];
 
   const alunosGlobal = alunosRows.map(normalizeAluno);
@@ -246,11 +288,17 @@ function buildClubesComAlunos(clubes: Clube[], alunosRows: unknown[], clubeIdByN
   return clubes.map((clube): ClubeComAlunos => {
     const clubId = normalizeIdRef(clube.id);
     const alunosFallback = typeof clube.alunos === 'number' && Number.isFinite(clube.alunos) ? clube.alunos : 0;
+    const totalAlunos = clubId
+      ? (alunosByClubId[clubId] || alunosByClubName[clubId] || alunosFallback)
+      : alunosFallback;
+
+    const gCount = genderCountByClub && clubId ? genderCountByClub[clubId] : undefined;
+
     return {
       ...clube,
-      alunos: clubId
-        ? (alunosByClubId[clubId] || alunosByClubName[clubId] || alunosFallback)
-        : alunosFallback,
+      alunos: totalAlunos,
+      alunosM: gCount ? gCount.M : 0,
+      alunosF: gCount ? gCount.F : 0,
     };
   });
 }

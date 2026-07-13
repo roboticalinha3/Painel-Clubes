@@ -29,8 +29,7 @@ const STATIC_GENDER_DISTRIBUTION = [52, 48];
 const CHART_ANIMATION = { duration: 850, easing: 'easeOutQuart' };
 
 export function DashboardView({ clubes, genderStats, onSelectClub }) {
-  console.log("🛠️ DADOS RECEBIDOS NO DASHBOARD:", clubes);
-
+  
   const analytics = buildAnalytics(clubes, clubes);
   const byCategoria = buildCategoria(clubes);
   const byStatus = buildStatusDistribuicao(clubes);

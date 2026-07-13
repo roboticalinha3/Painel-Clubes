@@ -19,7 +19,6 @@ const EMPTY_FORM = {
 export function ClubFormModal({
   open,
   title,
-  initialValues = {},
   lockedUtec = '',
   showUtecPlaceholder = false,
   utecOptions = [],
